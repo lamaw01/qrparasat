@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 
+import 'check_location_permission.dart';
 import 'qr_page.dart';
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(
+    const MyApp(),
+  );
 }
+
+late Position currentPosition;
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -12,36 +19,67 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Parasat QR Scan',
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      //home: const Qrpage(),
       home: const Home(),
+      debugShowCheckedModeBanner: false,
     );
   }
 }
 
-class Home extends StatelessWidget {
+class Home extends StatefulWidget {
   const Home({super.key});
+
+  @override
+  State<Home> createState() => _HomeState();
+}
+
+class _HomeState extends State<Home> {
+  final _isLoading = ValueNotifier(false);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Home'),
-        actions: [
-          IconButton(
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const Qrpage(),
+        title: const Text('Parasat QR Scan'),
+      ),
+      body: Center(
+        child: ValueListenableBuilder(
+          valueListenable: _isLoading,
+          builder: (context, state, child) {
+            if (state) {
+              return const CircularProgressIndicator();
+            } else {
+              return TextButton(
+                style: TextButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                ),
+                onPressed: () async {
+                  _isLoading.value = true;
+                  await determinePosition().then((value) {
+                    currentPosition = value;
+                    debugPrint(
+                        '${currentPosition.latitude} ${currentPosition.longitude}');
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const Qrpage(),
+                      ),
+                    );
+                  }).onError((error, stackTrace) {
+                    debugPrint(error.toString());
+                  });
+                  _isLoading.value = false;
+                },
+                child: const Text(
+                  'Start',
+                  style: TextStyle(color: Colors.white),
                 ),
               );
-            },
-            icon: const Icon(Icons.forward),
-          )
-        ],
+            }
+          },
+        ),
       ),
     );
   }
