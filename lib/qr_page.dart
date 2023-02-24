@@ -1,10 +1,6 @@
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-
-// ignore: unused_import
-import 'mysql_connect.dart';
 
 class Qrpage extends StatefulWidget {
   const Qrpage({super.key, required this.position});
@@ -28,41 +24,6 @@ class _QrpageState extends State<Qrpage> {
 
   @override
   Widget build(BuildContext context) {
-    // ignore: unused_element
-    Future<void> showMyDialog(String text) async {
-      return showDialog<void>(
-        context: context,
-        barrierDismissible: false, // user must tap button!
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: const Text('AlertDialog Title'),
-            content: SingleChildScrollView(
-              child: ListBody(
-                children: const <Widget>[
-                  Text('This is a demo alert dialog.'),
-                  Text('Would you like to approve of this message?'),
-                ],
-              ),
-            ),
-            actions: <Widget>[
-              TextButton(
-                child: const Text('Approve'),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-              ),
-            ],
-          );
-        },
-      );
-    }
-
-    SnackBar showMySnackBar(String text) {
-      return SnackBar(
-        content: Text(text),
-      );
-    }
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Scan'),
@@ -105,9 +66,6 @@ class _QrpageState extends State<Qrpage> {
         child: SizedBox(
           height: 300.0,
           width: 300.0,
-          // child: CustomPaint(
-          //   painter: Sky(),
-          // ),
           child: Stack(
             alignment: Alignment.center,
             children: [
@@ -116,26 +74,24 @@ class _QrpageState extends State<Qrpage> {
                 startDelay: false,
                 fit: BoxFit.cover,
                 controller: cameraController,
-                onScannerStarted: (capture) {
-                  debugPrint('started');
-                },
                 onDetect: (capture) async {
                   final List<Barcode> barcodes = capture.barcodes;
-                  // ignore: unused_local_variable
-                  final Uint8List? image = capture.image;
                   for (final barcode in barcodes) {
                     debugPrint('Display Value! ${barcode.displayValue}');
                     if (barcode.displayValue != null) {
-                      ScaffoldMessenger.of(context)
-                          .showSnackBar(showMySnackBar(barcode.displayValue!));
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                        content: Text(barcode.displayValue!),
+                      ));
                       //Insert to database
                       // await insertLog(barcode.displayValue!).then((value) {
                       //   if (value) {
-                      //     ScaffoldMessenger.of(context).showSnackBar(
-                      //         showMySnackBar(barcode.displayValue!));
+                      //     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      //       content: Text(barcode.displayValue!),
+                      //     ));
                       //   } else {
-                      //     ScaffoldMessenger.of(context)
-                      //         .showSnackBar(showMySnackBar('Error'));
+                      //     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      //       content: Text(barcode.displayValue!),
+                      //     ));
                       //   }
                       // });
                     }
@@ -163,6 +119,7 @@ class _QrpageState extends State<Qrpage> {
   }
 }
 
+//Paint see Rect layout
 class Sky extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
