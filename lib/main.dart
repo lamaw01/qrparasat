@@ -11,8 +11,6 @@ void main() async {
   );
 }
 
-late Position currentPosition;
-
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -38,6 +36,7 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
   final _isLoading = ValueNotifier(false);
+  late Position currentPosition;
 
   @override
   Widget build(BuildContext context) {
@@ -64,7 +63,9 @@ class _HomeState extends State<Home> {
                         '${currentPosition.latitude} ${currentPosition.longitude}');
                     Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (context) => const Qrpage(),
+                        builder: (context) => Qrpage(
+                          position: currentPosition,
+                        ),
                       ),
                     );
                   }).onError((error, stackTrace) {

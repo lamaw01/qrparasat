@@ -37,7 +37,8 @@ dependencies:
   cupertino_icons: ^1.0.2
   mobile_scanner: ^3.0.0
   geolocator: ^9.0.2
-  riverpod: ^2.2.0
+  mysql1: ^0.20.0
+  geocode: ^1.0.2
 
 dev_dependencies:
   flutter_test:

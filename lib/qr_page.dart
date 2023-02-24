@@ -1,9 +1,14 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
+// ignore: unused_import
+import 'mysql_connect.dart';
+
 class Qrpage extends StatefulWidget {
-  const Qrpage({super.key});
+  const Qrpage({super.key, required this.position});
+  final Position position;
 
   @override
   State<Qrpage> createState() => _QrpageState();
@@ -14,11 +19,6 @@ class _QrpageState extends State<Qrpage> {
     detectionSpeed: DetectionSpeed.normal,
     detectionTimeoutMs: 5000,
   );
-
-  @override
-  void initState() {
-    super.initState();
-  }
 
   @override
   void dispose() {
@@ -119,19 +119,25 @@ class _QrpageState extends State<Qrpage> {
                 onScannerStarted: (capture) {
                   debugPrint('started');
                 },
-                onDetect: (capture) {
+                onDetect: (capture) async {
                   final List<Barcode> barcodes = capture.barcodes;
                   // ignore: unused_local_variable
                   final Uint8List? image = capture.image;
                   for (final barcode in barcodes) {
                     debugPrint('Display Value! ${barcode.displayValue}');
-                    debugPrint('Geo point! ${barcode.geoPoint}');
                     if (barcode.displayValue != null) {
-                      //showMyDialog(barcode.rawValue!);
-
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        showMySnackBar(barcode.displayValue!),
-                      );
+                      ScaffoldMessenger.of(context)
+                          .showSnackBar(showMySnackBar(barcode.displayValue!));
+                      //Insert to database
+                      // await insertLog(barcode.displayValue!).then((value) {
+                      //   if (value) {
+                      //     ScaffoldMessenger.of(context).showSnackBar(
+                      //         showMySnackBar(barcode.displayValue!));
+                      //   } else {
+                      //     ScaffoldMessenger.of(context)
+                      //         .showSnackBar(showMySnackBar('Error'));
+                      //   }
+                      // });
                     }
                   }
                 },
@@ -172,6 +178,7 @@ class Sky extends CustomPainter {
   }
 }
 
+//Borders Black
 class BorderPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
