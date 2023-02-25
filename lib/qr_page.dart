@@ -64,36 +64,29 @@ class _QrpageState extends State<Qrpage> {
       ),
       body: Center(
         child: SizedBox(
-          height: 300.0,
-          width: 300.0,
+          // height: 300.0,
+          // width: 300.0,
           child: Stack(
             alignment: Alignment.center,
             children: [
               MobileScanner(
-                scanWindow: const Rect.fromLTRB(25.0, 25.0, 275.0, 275.0),
+                // scanWindow: const Rect.fromLTRB(25.0, 25.0, 275.0, 275.0),
                 startDelay: false,
                 fit: BoxFit.cover,
                 controller: cameraController,
                 onDetect: (capture) async {
                   final List<Barcode> barcodes = capture.barcodes;
                   for (final barcode in barcodes) {
-                    debugPrint('Display Value! ${barcode.displayValue}');
+                    debugPrint('${barcode.displayValue}');
                     if (barcode.displayValue != null) {
                       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                        content: Text(barcode.displayValue!),
+                        content: Text(
+                          barcode.displayValue!,
+                          style: const TextStyle(color: Colors.black),
+                        ),
+                        behavior: SnackBarBehavior.floating,
+                        backgroundColor: Colors.white,
                       ));
-                      //Insert to database
-                      // await insertLog(barcode.displayValue!).then((value) {
-                      //   if (value) {
-                      //     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                      //       content: Text(barcode.displayValue!),
-                      //     ));
-                      //   } else {
-                      //     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                      //       content: Text(barcode.displayValue!),
-                      //     ));
-                      //   }
-                      // });
                     }
                   }
                 },
@@ -105,8 +98,8 @@ class _QrpageState extends State<Qrpage> {
                 ),
               ),
               SizedBox(
-                height: 200.0,
-                width: 200.0,
+                height: 250.0,
+                width: 250.0,
                 child: CustomPaint(
                   foregroundPainter: BorderPainter(),
                 ),
@@ -144,8 +137,8 @@ class BorderPainter extends CustomPainter {
     double cornerSide = sh * 0.1; // desirable value for corners side
 
     Paint paint = Paint()
-      ..color = Colors.black
-      ..strokeWidth = 1.5
+      ..color = Colors.red
+      ..strokeWidth = 2.0
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
 

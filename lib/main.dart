@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
-
-import 'check_location_permission.dart';
+import 'custom_color.dart';
+import 'get_position.dart';
 import 'qr_page.dart';
 
 void main() async {
@@ -17,9 +16,9 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Parasat QR Scan',
+      title: 'Sirius',
       theme: ThemeData(
-        primarySwatch: Colors.blue,
+        primarySwatch: Palette.kToDark,
       ),
       home: const Home(),
       debugShowCheckedModeBanner: false,
@@ -36,49 +35,61 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
   final _isLoading = ValueNotifier(false);
-  late Position currentPosition;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Parasat QR Scan'),
+        title: const Text('Sirius'),
       ),
-      body: Center(
-        child: ValueListenableBuilder(
-          valueListenable: _isLoading,
-          builder: (context, state, child) {
-            if (state) {
-              return const CircularProgressIndicator();
-            } else {
-              return TextButton(
-                style: TextButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                ),
-                onPressed: () async {
-                  _isLoading.value = true;
-                  await determinePosition().then((value) {
-                    currentPosition = value;
-                    debugPrint(
-                        '${currentPosition.latitude} ${currentPosition.longitude}');
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => Qrpage(
-                          position: currentPosition,
-                        ),
-                      ),
-                    );
-                  }).onError((error, stackTrace) {
-                    debugPrint(error.toString());
-                  });
-                  _isLoading.value = false;
-                },
-                child: const Text(
-                  'Start',
-                  style: TextStyle(color: Colors.white),
+      body: const Center(
+        child: CircleAvatar(
+          radius: 150.0,
+          backgroundImage: AssetImage('asset/bg_parasat.jpg'),
+        ),
+      ),
+      bottomNavigationBar: Ink(
+        color: Palette.kToDark,
+        width: double.infinity,
+        height: 60.0,
+        child: InkWell(
+          child: Center(
+            child: ValueListenableBuilder(
+              valueListenable: _isLoading,
+              builder: (context, state, child) {
+                if (state) {
+                  return const CircularProgressIndicator(color: Colors.white);
+                } else {
+                  return const Text(
+                    'Start',
+                    style: TextStyle(
+                      fontSize: 20.0,
+                      color: Colors.white,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  );
+                }
+              },
+            ),
+          ),
+          onTap: () async {
+            _isLoading.value = true;
+            await getPosition().then((value) {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => Qrpage(
+                    position: value,
+                  ),
                 ),
               );
-            }
+            }).onError((error, stackTrace) {
+              debugPrint(error.toString());
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text(error.toString()),
+                behavior: SnackBarBehavior.floating,
+              ));
+            });
+            _isLoading.value = false;
           },
         ),
       ),
