@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'http_service.dart';
 
 class Qrpage extends StatefulWidget {
   const Qrpage({super.key, required this.position});
@@ -20,6 +21,28 @@ class _QrpageState extends State<Qrpage> {
   void dispose() {
     super.dispose();
     cameraController.dispose();
+  }
+
+  Future<void> insertLog(String id) async {
+    String result = '';
+    bool success = false;
+    try {
+      var data = await HttpService.postLog(id);
+      result = data.data;
+      success = data.success;
+    } catch (e) {
+      result = e.toString();
+      debugPrint(result);
+    } finally {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(
+          success ? "Good Morning $result" : result,
+          style: const TextStyle(color: Colors.black),
+        ),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: Colors.white,
+      ));
+    }
   }
 
   @override
@@ -77,16 +100,9 @@ class _QrpageState extends State<Qrpage> {
                 onDetect: (capture) async {
                   final List<Barcode> barcodes = capture.barcodes;
                   for (final barcode in barcodes) {
-                    debugPrint('${barcode.displayValue}');
+                    debugPrint('barcode ${barcode.displayValue}');
                     if (barcode.displayValue != null) {
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                        content: Text(
-                          barcode.displayValue!,
-                          style: const TextStyle(color: Colors.black),
-                        ),
-                        behavior: SnackBarBehavior.floating,
-                        backgroundColor: Colors.white,
-                      ));
+                      await insertLog(barcode.displayValue!);
                     }
                   }
                 },
