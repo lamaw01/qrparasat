@@ -2,9 +2,10 @@ import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import 'custom_color.dart';
-import 'get_position.dart';
+import 'app_color.dart';
+import 'position_service.dart';
 import 'http_service.dart';
+import 'qr_data.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,7 +22,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Sirius',
       theme: ThemeData(
-        primarySwatch: Palette.kToDark,
+        primarySwatch: Palette.kMainColor,
       ),
       home: const Home(),
       debugShowCheckedModeBanner: false,
@@ -49,7 +50,7 @@ class _HomeState extends State<Home> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      positon = await getPosition();
+      positon = await PositionService.getPosition();
     });
   }
 
@@ -60,23 +61,42 @@ class _HomeState extends State<Home> {
   }
 
   Future<void> insertLog(String id) async {
-    String result = '';
+    QrData qrData = qrDataFromJson(id);
     bool success = false;
+    String name = qrData.name;
+    String logType = '';
+    String error = '';
     try {
-      var data = await HttpService.postLog(id);
-      result = data.data;
+      var data = await HttpService.postLog(qrData.id);
+      name = data.name;
+      logType = data.logType;
       success = data.success;
     } catch (e) {
-      result = e.toString();
-      debugPrint(result);
+      error = e.toString();
+      log(error);
     } finally {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(
-          success ? "Good Morning $result" : result,
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          padding: const EdgeInsetsDirectional.all(10.0),
+          content: SizedBox(
+            height: 50.0,
+            width: context.size!.width,
+            child: Center(
+              child: Text(
+                success ? "$logType $name" : error,
+                style: const TextStyle(
+                  fontSize: 15.0,
+                  fontWeight: FontWeight.w600,
+                ),
+                textAlign: TextAlign.center,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ),
+          duration: const Duration(seconds: 6),
+          behavior: SnackBarBehavior.floating,
         ),
-        duration: const Duration(seconds: 5),
-        behavior: SnackBarBehavior.floating,
-      ));
+      );
     }
   }
 
@@ -132,45 +152,35 @@ class _HomeState extends State<Home> {
         ],
       ),
       body: Center(
-        child: SizedBox(
-          // height: 300.0,
-          // width: 300.0,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              MobileScanner(
-                // scanWindow: const Rect.fromLTRB(25.0, 25.0, 275.0, 275.0),
-                fit: BoxFit.contain,
-                // startDelay: true,
-                controller: cameraController,
-                onDetect: (capture) async {
-                  final List<Barcode> barcodes = capture.barcodes;
-                  for (final barcode in barcodes) {
-                    log('barcode ${barcode.rawValue}');
-                    if (barcode.rawValue != null) {
-                      await insertLog(barcode.displayValue!);
-                      // ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                      //   content: Text(
-                      //     barcode.displayValue!,
-                      //   ),
-                      //   behavior: SnackBarBehavior.floating,
-                      // ));
-                    }
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            MobileScanner(
+              // scanWindow: const Rect.fromLTRB(25.0, 25.0, 275.0, 275.0),
+              fit: BoxFit.contain,
+              startDelay: true,
+              controller: cameraController,
+              onDetect: (capture) async {
+                final List<Barcode> barcodes = capture.barcodes;
+                for (final barcode in barcodes) {
+                  log('barcode ${barcode.rawValue}');
+                  if (barcode.rawValue != null) {
+                    await insertLog(barcode.rawValue!);
                   }
-                },
-                errorBuilder: (ctx, exception, widget) => const Center(
-                  child: CircularProgressIndicator(),
-                ),
+                }
+              },
+              errorBuilder: (ctx, exception, widget) => const Center(
+                child: CircularProgressIndicator(),
               ),
-              SizedBox(
-                height: 200.0,
-                width: 200.0,
-                child: CustomPaint(
-                  foregroundPainter: BorderPainter(),
-                ),
+            ),
+            SizedBox(
+              height: 200.0,
+              width: 200.0,
+              child: CustomPaint(
+                foregroundPainter: BorderPainter(),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

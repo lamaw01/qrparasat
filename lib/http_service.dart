@@ -14,7 +14,7 @@ class HttpService {
               'Content-Type': 'application/json; charset=UTF-8',
             },
             body: json.encode(<String, dynamic>{"employee_id": id}))
-        .timeout(const Duration(seconds: 5));
+        .timeout(const Duration(seconds: 7));
     log(response.body);
     if (response.statusCode == 200) {
       return dataFromJson(response.body);

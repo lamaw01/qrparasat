@@ -1,6 +1,4 @@
 <?php
-
-// connect to the database and select the result
 require 'db_connect.php';
 header('Content-Type: application/json; charset=utf-8');
 
@@ -17,13 +15,13 @@ if(isset($_POST['employee_id'])){
     $log_out = 'OUT';
 
     // last output
-    $result = array('success'=>null);
+    $result = array('name'=>null, 'log_type'=>null, 'success'=>null);
 
     // query get employee last log
     $sql_last_log = 'SELECT tbl_employee.employee_id, tbl_employee.name, tbl_logs.log_type
     FROM tbl_employee 
     LEFT JOIN tbl_logs ON tbl_employee.employee_id = tbl_logs.employee_id
-    WHERE tbl_logs.employee_id = :employee_id 
+    WHERE tbl_logs.employee_id = :employee_id AND tbl_employee.acitve = 1
     ORDER BY tbl_logs.time_stamp DESC LIMIT 1';
 
     // query check if employee has data
@@ -37,27 +35,26 @@ if(isset($_POST['employee_id'])){
     try {
         // get employee last log
         $get_employee_last_log = $conn->prepare($sql_last_log);
-        $get_employee_last_log->bindParam(':employee_id', $employee_id, PDO::PARAM_INT);
+        $get_employee_last_log->bindParam(':employee_id', $employee_id, PDO::PARAM_STR);
         $get_employee_last_log->execute();
         $result_last_log = $get_employee_last_log->fetch(PDO::FETCH_ASSOC);
         // insert new log
         if($result_last_log){
             $employee_name = $result_last_log['name'];
-            // $myObj->employee_id = $result_last_log['employee_id'];
-            // $myObj->name = $result_last_log['name'];
-            // $myObj->log_type = $result_last_log['log_type'];
-            // $myJSON = json_encode($myObj);
-            // echo($myJSON);
+            $log_type = $result_last_log['log_type'];
             $insert_in_employee = $conn->prepare($sql_insert_log);
-            $insert_in_employee->bindParam(':employee_id', $employee_id, PDO::PARAM_INT);
+            $insert_in_employee->bindParam(':employee_id', $employee_id, PDO::PARAM_STR);
             // in or out
-            if($result_last_log['log_type'] == 'OUT'){
+            if($log_type == 'OUT'){
                 $insert_in_employee->bindParam(':log_type', $log_in, PDO::PARAM_STR);
+                $result['log_type'] = $log_in;
+
             }else{
                 $insert_in_employee->bindParam(':log_type', $log_out, PDO::PARAM_STR);
+                $result['log_type'] = $log_out;
             }
             $insert_in_employee->execute();
-            $result = ['data' => $employee_name];
+            $result['name'] = $employee_name;
             $result['success'] = true;
             echo json_encode($result);
         }
@@ -65,31 +62,36 @@ if(isset($_POST['employee_id'])){
         else{
             // check if employee id exist
             $get_employee_exist = $conn->prepare($sql_check_employee_exist);
-            $get_employee_exist->bindParam(':employee_id', $employee_id, PDO::PARAM_INT);
+            $get_employee_exist->bindParam(':employee_id', $employee_id, PDO::PARAM_STR);
             $get_employee_exist->execute();
             $result_employee_exist = $get_employee_exist->fetch(PDO::FETCH_ASSOC);
             // if exist insert log
             if($result_employee_exist){
+                $employee_name_new = $result_employee_exist['name'];
                 $insert_in_employee = $conn->prepare($sql_insert_log);
-                $insert_in_employee->bindParam(':employee_id', $employee_id, PDO::PARAM_INT);
+                $insert_in_employee->bindParam(':employee_id', $employee_id, PDO::PARAM_STR);
                 $insert_in_employee->bindParam(':log_type', $log_in, PDO::PARAM_STR);
                 $insert_in_employee->execute();
                 // $result = ['data' => $conn->lastInsertId()];
-                $result = ['data' => $employee_name];
+                $result['name'] = $employee_name_new;
+                $result['log_type'] = $log_in;
                 $result['success'] = true;
                 echo json_encode($result);
             }else{
-                $result = ['data' => 'employee id doest exist'];
+                $result['name'] = 'Id doesnt exist or non-active';
+                $result['log_type'] = 'ERROR';
                 $result['success'] = false;
                 echo json_encode($result);
             }
         }
     } catch (PDOException $e) {
-        $result = ['data' => "PDOException Error: <br>".$e->getMessage()];
+        $result['name'] = "PDOException Error: <br>".$e->getMessage();
+        $result['log_type'] = 'ERROR';
         $result['success'] = false;
         echo json_encode($result);
     } catch (Exception $e) {
-        $result  = ['data' =>  "Exception Error: <br>".$e->getMessage()];
+        $result['name'] = "Exception Error: <br>".$e->getMessage();
+        $result['log_type'] = 'ERROR';
         $result['success'] = false;
         echo json_encode($result);
     }finally{
