@@ -1,14 +1,17 @@
 import 'dart:developer';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'app_color.dart';
+// ignore: unused_import
 import 'position_service.dart';
 import 'http_service.dart';
 import 'qr_data.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   runApp(
     const MyApp(),
   );
@@ -49,9 +52,9 @@ class _HomeState extends State<Home> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      positon = await PositionService.getPosition();
-    });
+    // WidgetsBinding.instance.addPostFrameCallback((_) async {
+    //   positon = await PositionService.getPosition();
+    // });
   }
 
   @override
@@ -106,17 +109,6 @@ class _HomeState extends State<Home> {
       appBar: AppBar(
         title: const Text('Sirius'),
         actions: [
-          IconButton(
-            color: Colors.white,
-            icon: const Icon(Icons.refresh),
-            iconSize: 30.0,
-            onPressed: () => Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (BuildContext context) => widget,
-              ),
-            ),
-          ),
           IconButton(
             color: Colors.white,
             icon: ValueListenableBuilder(
