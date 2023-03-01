@@ -47,7 +47,7 @@ if(isset($_POST['employee_id'])){
             $current_time_stamp = date('Y-m-d H:i:s');
             $time_difference = strtotime($current_time_stamp) - strtotime($time_stamp);
             // if time difference not yet 4 hours, do not log. 14400 = 4 hours
-            if($time_difference <= 14 && $log_type == 'IN'){
+            if($time_difference <= 14400 && $log_type == 'IN'){
                 $result['log_type'] = $already_logged;
             }else{
                 $insert_in_employee = $conn->prepare($sql_insert_log);

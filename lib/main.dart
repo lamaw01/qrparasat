@@ -67,8 +67,7 @@ class _HomeState extends State<Home> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         padding: const EdgeInsetsDirectional.all(10.0),
-        content: Container(
-          color: Colors.orange,
+        content: SizedBox(
           height: 50.0,
           child: Center(
             child: Text(
