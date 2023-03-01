@@ -13,20 +13,21 @@ if(isset($_POST['employee_id'])){
     $employee_id = $input['employee_id'];
     $log_in = 'IN';
     $log_out = 'OUT';
+    $already_logged = 'ALREADY IN';
 
     // last output
     $result = array('name'=>null, 'log_type'=>null, 'success'=>null);
 
     // query get employee last log
-    $sql_last_log = 'SELECT tbl_employee.employee_id, tbl_employee.name, tbl_logs.log_type
+    $sql_last_log = 'SELECT tbl_employee.employee_id, tbl_employee.name, tbl_logs.log_type, tbl_logs.time_stamp
     FROM tbl_employee 
     LEFT JOIN tbl_logs ON tbl_employee.employee_id = tbl_logs.employee_id
-    WHERE tbl_logs.employee_id = :employee_id AND tbl_employee.acitve = 1
+    WHERE tbl_logs.employee_id = :employee_id AND tbl_employee.active = 1
     ORDER BY tbl_logs.time_stamp DESC LIMIT 1';
 
     // query check if employee has data
     $sql_check_employee_exist = 'SELECT * FROM tbl_employee 
-    WHERE employee_id = :employee_id';
+    WHERE employee_id = :employee_id AND active = 1';
 
     // query insert new log
     $sql_insert_log = 'INSERT INTO tbl_logs(employee_id, log_type)
@@ -42,25 +43,32 @@ if(isset($_POST['employee_id'])){
         if($result_last_log){
             $employee_name = $result_last_log['name'];
             $log_type = $result_last_log['log_type'];
-            $insert_in_employee = $conn->prepare($sql_insert_log);
-            $insert_in_employee->bindParam(':employee_id', $employee_id, PDO::PARAM_STR);
-            // in or out
-            if($log_type == 'OUT'){
-                $insert_in_employee->bindParam(':log_type', $log_in, PDO::PARAM_STR);
-                $result['log_type'] = $log_in;
-
+            $time_stamp = $result_last_log['time_stamp'];
+            $current_time_stamp = date('Y-m-d H:i:s');
+            $time_difference = strtotime($current_time_stamp) - strtotime($time_stamp);
+            // if time difference not yet 4 hours, do not log. 14400 = 4 hours
+            if($time_difference <= 14 && $log_type == 'IN'){
+                $result['log_type'] = $already_logged;
             }else{
-                $insert_in_employee->bindParam(':log_type', $log_out, PDO::PARAM_STR);
-                $result['log_type'] = $log_out;
+                $insert_in_employee = $conn->prepare($sql_insert_log);
+                $insert_in_employee->bindParam(':employee_id', $employee_id, PDO::PARAM_STR);
+                // in or out
+                if($log_type == 'OUT'){
+                    $insert_in_employee->bindParam(':log_type', $log_in, PDO::PARAM_STR);
+                    $result['log_type'] = $log_in;
+                }else{
+                    $insert_in_employee->bindParam(':log_type', $log_out, PDO::PARAM_STR);
+                    $result['log_type'] = $log_out;
+                }
+                $insert_in_employee->execute();
             }
-            $insert_in_employee->execute();
             $result['name'] = $employee_name;
             $result['success'] = true;
             echo json_encode($result);
         }
         // insert new log if user has no logs yet
         else{
-            // check if employee id exist
+            //check if employee id exist
             $get_employee_exist = $conn->prepare($sql_check_employee_exist);
             $get_employee_exist->bindParam(':employee_id', $employee_id, PDO::PARAM_STR);
             $get_employee_exist->execute();
@@ -80,7 +88,7 @@ if(isset($_POST['employee_id'])){
             }else{
                 $result['name'] = 'Id doesnt exist or non-active';
                 $result['log_type'] = 'ERROR';
-                $result['success'] = false;
+                $result['success'] = true;
                 echo json_encode($result);
             }
         }

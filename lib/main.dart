@@ -43,7 +43,7 @@ class Home extends StatefulWidget {
 class _HomeState extends State<Home> {
   MobileScannerController cameraController = MobileScannerController(
     detectionSpeed: DetectionSpeed.normal,
-    detectionTimeoutMs: 8000,
+    detectionTimeoutMs: 5000,
     formats: [BarcodeFormat.qrCode],
   );
 
@@ -63,43 +63,40 @@ class _HomeState extends State<Home> {
     cameraController.dispose();
   }
 
-  Future<void> insertLog(String id) async {
-    QrData qrData = qrDataFromJson(id);
-    bool success = false;
-    String name = qrData.name;
-    String logType = '';
-    String error = '';
-    try {
-      var data = await HttpService.postLog(qrData.id);
-      name = data.name;
-      logType = data.logType;
-      success = data.success;
-    } catch (e) {
-      error = e.toString();
-      log(error);
-    } finally {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          padding: const EdgeInsetsDirectional.all(10.0),
-          content: SizedBox(
-            height: 50.0,
-            width: context.size!.width,
-            child: Center(
-              child: Text(
-                success ? "$logType $name" : error,
-                style: const TextStyle(
-                  fontSize: 15.0,
-                  fontWeight: FontWeight.w600,
-                ),
-                textAlign: TextAlign.center,
-                overflow: TextOverflow.ellipsis,
+  void showMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        padding: const EdgeInsetsDirectional.all(10.0),
+        content: Container(
+          color: Colors.orange,
+          height: 50.0,
+          child: Center(
+            child: Text(
+              message,
+              style: const TextStyle(
+                fontSize: 15.0,
+                fontWeight: FontWeight.w600,
               ),
+              textAlign: TextAlign.center,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
-          duration: const Duration(seconds: 6),
-          behavior: SnackBarBehavior.floating,
         ),
-      );
+        duration: const Duration(seconds: 5),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  Future<void> insertLog(String id) async {
+    QrData qrData = qrDataFromJson(id);
+    try {
+      await HttpService.postLog(qrData.id).then((value) {
+        showMessage("${value.logType} ${value.name}");
+      });
+    } catch (e) {
+      log(e.toString());
+      showMessage(e.toString());
     }
   }
 
@@ -148,9 +145,7 @@ class _HomeState extends State<Home> {
           alignment: Alignment.center,
           children: [
             MobileScanner(
-              // scanWindow: const Rect.fromLTRB(25.0, 25.0, 275.0, 275.0),
               fit: BoxFit.contain,
-              startDelay: true,
               controller: cameraController,
               onDetect: (capture) async {
                 final List<Barcode> barcodes = capture.barcodes;
