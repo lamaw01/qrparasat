@@ -93,13 +93,13 @@ if(isset($_POST['employee_id'])){
             }
         }
     } catch (PDOException $e) {
-        $result['name'] = "PDOException Error: <br>".$e->getMessage();
-        $result['log_type'] = 'ERROR';
+        $result['name'] = $e->getMessage();
+        $result['log_type'] = 'PDOException Error';
         $result['success'] = false;
         echo json_encode($result);
     } catch (Exception $e) {
-        $result['name'] = "Exception Error: <br>".$e->getMessage();
-        $result['log_type'] = 'ERROR';
+        $result['name'] = $e->getMessage();
+        $result['log_type'] = 'Exception Error';
         $result['success'] = false;
         echo json_encode($result);
     }finally{
