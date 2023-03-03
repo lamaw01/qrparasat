@@ -1,13 +1,18 @@
+import 'dart:async';
 import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:intl/intl.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import 'app_color.dart';
-// ignore: unused_import
+import 'package:device_info_plus/device_info_plus.dart';
+import 'package:flutter_styled_toast/flutter_styled_toast.dart';
+import 'package:geocoding/geocoding.dart';
 import 'position_service.dart';
 import 'http_service.dart';
 import 'qr_data.dart';
+import 'data.dart';
+import 'app_color.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,7 +33,7 @@ class MyApp extends StatelessWidget {
         primarySwatch: Palette.kMainColor,
       ),
       home: const Home(),
-      debugShowCheckedModeBanner: false,
+      debugShowCheckedModeBanner: true,
     );
   }
 }
@@ -46,15 +51,31 @@ class _HomeState extends State<Home> {
     detectionTimeoutMs: 5000,
     formats: [BarcodeFormat.qrCode],
   );
-
+  var deviceInfo = DeviceInfoPlugin();
   Position? positon;
+  AndroidDeviceInfo? androidInfo;
+  List<Placemark>? placemarks;
+  var timeLine = <Data>[];
+  var scrollController = ScrollController();
+  var isLoading = true;
+  var isDeviceAuthorized = true;
+  final currentTime =
+      ValueNotifier<String>(DateFormat.jms().format(DateTime.now()));
 
   @override
   void initState() {
     super.initState();
-    // WidgetsBinding.instance.addPostFrameCallback((_) async {
-    //   positon = await PositionService.getPosition();
-    // });
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await initDeviceInfo();
+      await initPosition();
+      await initTranslateLatLng();
+      setState(() {
+        isLoading = false;
+      });
+    });
+    Timer.periodic(const Duration(seconds: 1), (timer) {
+      currentTime.value = DateFormat.jms().format(DateTime.now());
+    });
   }
 
   @override
@@ -63,27 +84,94 @@ class _HomeState extends State<Home> {
     cameraController.dispose();
   }
 
-  void showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        padding: const EdgeInsetsDirectional.all(10.0),
-        content: SizedBox(
-          height: 50.0,
-          child: Center(
-            child: Text(
-              message,
-              style: const TextStyle(
-                fontSize: 15.0,
-                fontWeight: FontWeight.w600,
-              ),
-              textAlign: TextAlign.center,
+  Future<void> initPosition() async {
+    try {
+      positon = await PositionService.getPosition();
+      log("latlng ${positon!.latitude} ${positon!.longitude}");
+    } catch (e) {
+      var errorText = e.toString();
+      log(errorText);
+      _showMyDialog('Location', errorText);
+    }
+  }
+
+  Future<void> initTranslateLatLng() async {
+    try {
+      placemarks =
+          await placemarkFromCoordinates(positon!.latitude, positon!.longitude);
+      var uniquePlace =
+          "${placemarks!.first.subAdministrativeArea} ${placemarks!.first.locality} ${placemarks!.first.thoroughfare} ${placemarks!.first.street}";
+      log(uniquePlace);
+    } catch (e) {
+      log(e.toString());
+    }
+  }
+
+  Future<void> initDeviceInfo() async {
+    try {
+      androidInfo = await deviceInfo.androidInfo;
+      var uniqueId =
+          "${androidInfo!.brand}:${androidInfo!.product}:${androidInfo!.id}";
+      log(uniqueId);
+    } catch (e) {
+      log(e.toString());
+    } finally {
+      await checkDeviceAuthorized(
+          "${androidInfo!.brand}:${androidInfo!.product}:${androidInfo!.id}");
+    }
+  }
+
+  void _showMyDialog(String title, String message) {
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false, // user must tap button!
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(title),
+          content: Text(message),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Ok'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showMyToast(String message) {
+    showToastWidget(
+      Container(
+        height: 150.0,
+        width: 300.0,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(5.0),
+          color: Palette.kMainColor,
+        ),
+        child: Center(
+          child: Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 20.0,
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
               overflow: TextOverflow.ellipsis,
             ),
           ),
         ),
-        duration: const Duration(seconds: 5),
-        behavior: SnackBarBehavior.floating,
       ),
+      context: context,
+      animation: StyledToastAnimation.scale,
+      reverseAnimation: StyledToastAnimation.fade,
+      position: StyledToastPosition.center,
+      animDuration: const Duration(seconds: 1),
+      duration: const Duration(seconds: 5),
+      curve: Curves.elasticOut,
+      reverseCurve: Curves.linear,
     );
   }
 
@@ -91,85 +179,201 @@ class _HomeState extends State<Home> {
     QrData qrData = qrDataFromJson(id);
     try {
       await HttpService.postLog(qrData.id).then((value) {
-        showMessage("${value.logType} ${value.name}");
+        _showMyToast("${value.logType} ${value.name}");
+        if (value.logType != "ALREADY IN") {
+          timeLine.add(value);
+          if (timeLine.length > 5) {
+            timeLine.removeAt(0);
+          }
+          setState(() {});
+        }
       });
     } catch (e) {
       log(e.toString());
-      showMessage(e.toString());
+      _showMyToast(e.toString());
+    } finally {
+      scrollController.animateTo(scrollController.position.minScrollExtent,
+          duration: const Duration(seconds: 2), curve: Curves.bounceInOut);
+    }
+  }
+
+  Future<void> checkDeviceAuthorized(String id) async {
+    try {
+      await HttpService.getDeviceAuthorized(id).then((value) {
+        isDeviceAuthorized = value.authorized;
+      });
+    } catch (e) {
+      log(e.toString());
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Sirius'),
-        actions: [
-          IconButton(
-            color: Colors.white,
-            icon: ValueListenableBuilder(
-              valueListenable: cameraController.torchState,
-              builder: (context, state, child) {
-                switch (state) {
-                  case TorchState.off:
-                    return const Icon(Icons.flash_off, color: Colors.grey);
-                  case TorchState.on:
-                    return const Icon(Icons.flash_on, color: Colors.yellow);
-                }
-              },
-            ),
-            iconSize: 30.0,
-            onPressed: () => cameraController.toggleTorch(),
-          ),
-          IconButton(
-            color: Colors.white,
-            icon: ValueListenableBuilder(
-              valueListenable: cameraController.cameraFacingState,
-              builder: (context, state, child) {
-                switch (state) {
-                  case CameraFacing.front:
-                    return const Icon(Icons.camera_front);
-                  case CameraFacing.back:
-                    return const Icon(Icons.camera_rear);
-                }
-              },
-            ),
-            iconSize: 30.0,
-            onPressed: () => cameraController.switchCamera(),
-          ),
-        ],
-      ),
-      body: Center(
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            MobileScanner(
-              fit: BoxFit.contain,
-              controller: cameraController,
-              onDetect: (capture) async {
-                final List<Barcode> barcodes = capture.barcodes;
-                for (final barcode in barcodes) {
-                  log('barcode ${barcode.rawValue}');
-                  if (barcode.rawValue != null) {
-                    await insertLog(barcode.rawValue!);
-                  }
-                }
-              },
-              errorBuilder: (ctx, exception, widget) => const Center(
-                child: CircularProgressIndicator(),
-              ),
-            ),
-            SizedBox(
-              height: 200.0,
+    // var screenSize = MediaQuery.of(context).size;
+    if (isLoading) {
+      return Scaffold(
+        backgroundColor: Palette.kMainColor,
+        body: Center(
+          child: Card(
+            child: SizedBox(
+              height: 75.0,
               width: 200.0,
-              child: CustomPaint(
-                foregroundPainter: BorderPainter(),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: const [
+                  Text('Loading...'),
+                  CircularProgressIndicator(),
+                ],
               ),
+            ),
+          ),
+        ),
+      );
+    } else {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Sirius'),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.info),
+              iconSize: 30.0,
+              onPressed: () {
+                log("${androidInfo!.brand}:${androidInfo!.product}:${androidInfo!.id}");
+                _showMyDialog("Device info",
+                    "${androidInfo!.brand}:${androidInfo!.product}:${androidInfo!.id}");
+              },
+            ),
+            IconButton(
+              color: Colors.white,
+              icon: ValueListenableBuilder(
+                valueListenable: cameraController.torchState,
+                builder: (context, state, child) {
+                  switch (state) {
+                    case TorchState.off:
+                      return const Icon(Icons.flash_off, color: Colors.grey);
+                    case TorchState.on:
+                      return const Icon(Icons.flash_on, color: Colors.yellow);
+                  }
+                },
+              ),
+              iconSize: 30.0,
+              onPressed: () => cameraController.toggleTorch(),
+            ),
+            IconButton(
+              color: Colors.white,
+              icon: ValueListenableBuilder(
+                valueListenable: cameraController.cameraFacingState,
+                builder: (context, state, child) {
+                  switch (state) {
+                    case CameraFacing.front:
+                      return const Icon(Icons.camera_front);
+                    case CameraFacing.back:
+                      return const Icon(Icons.camera_rear);
+                  }
+                },
+              ),
+              iconSize: 30.0,
+              onPressed: () => cameraController.switchCamera(),
             ),
           ],
         ),
-      ),
-    );
+        body: Center(
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              SizedBox(
+                child: MobileScanner(
+                  fit: BoxFit.cover,
+                  controller: cameraController,
+                  onDetect: (capture) async {
+                    final List<Barcode> barcodes = capture.barcodes;
+                    for (final barcode in barcodes) {
+                      log('barcode ${barcode.rawValue}');
+                      if (barcode.rawValue != null && isDeviceAuthorized) {
+                        await insertLog(barcode.rawValue!);
+                      } else {
+                        _showMyToast('Device not Authorized');
+                      }
+                    }
+                  },
+                  errorBuilder: (ctx, exception, widget) => const Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                ),
+              ),
+              SizedBox(
+                height: 200.0,
+                width: 200.0,
+                child: CustomPaint(
+                  foregroundPainter: BorderPainter(),
+                ),
+              ),
+              Positioned(
+                left: 5.0,
+                bottom: 5.0,
+                right: 5.0,
+                child: SizedBox(
+                  height: 70.0,
+                  child: ListView.separated(
+                    controller: scrollController,
+                    physics: const BouncingScrollPhysics(),
+                    scrollDirection: Axis.horizontal,
+                    itemCount: timeLine.length,
+                    separatorBuilder: (ctx, i) => const SizedBox(
+                      width: 5.0,
+                    ),
+                    itemBuilder: (ctx, i) {
+                      return Container(
+                        height: 70.0,
+                        width: 200.0,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(5.0),
+                          color: Palette.kMainColor,
+                        ),
+                        child: Center(
+                          child: Text(
+                            "${timeLine.reversed.toList()[i].logType} ${timeLine.reversed.toList()[i].name}",
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 16.0,
+                              color: Colors.white,
+                              fontWeight: FontWeight.w500,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+              Positioned(
+                top: 50.0,
+                child: ValueListenableBuilder<String>(
+                  builder: (ctx, value, _) {
+                    return Text(
+                      value,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20.0,
+                        shadows: [
+                          Shadow(
+                            blurRadius: 5.0,
+                            color: Palette.kMainColor.shade300,
+                            offset: const Offset(1.0, 1.0),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                  valueListenable: currentTime,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
   }
 }
 

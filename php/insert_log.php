@@ -46,8 +46,8 @@ if(isset($_POST['employee_id'])){
             $time_stamp = $result_last_log['time_stamp'];
             $current_time_stamp = date('Y-m-d H:i:s');
             $time_difference = strtotime($current_time_stamp) - strtotime($time_stamp);
-            // if time difference not yet 4 hours, do not log. 14400 = 4 hours
-            if($time_difference <= 14400 && $log_type == 'IN'){
+            // if time difference not yet 60 secods, do not log. 14400 = 4 hours
+            if($time_difference <= 60 && $log_type == 'IN'){
                 $result['log_type'] = $already_logged;
             }else{
                 $insert_in_employee = $conn->prepare($sql_insert_log);
@@ -97,14 +97,9 @@ if(isset($_POST['employee_id'])){
         $result['log_type'] = 'PDOException Error';
         $result['success'] = false;
         echo json_encode($result);
-    } catch (Exception $e) {
-        $result['name'] = $e->getMessage();
-        $result['log_type'] = 'Exception Error';
-        $result['success'] = false;
-        echo json_encode($result);
-    }finally{
+    } finally{
         // Closing the connection.
         $conn = null;
     }
-    }
+}
 ?>
