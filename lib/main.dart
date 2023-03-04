@@ -11,7 +11,7 @@ import 'package:geocoding/geocoding.dart';
 import 'position_service.dart';
 import 'http_service.dart';
 import 'qr_data.dart';
-import 'data.dart';
+import 'data_logs.dart';
 import 'app_color.dart';
 
 void main() async {
@@ -55,7 +55,7 @@ class _HomeState extends State<Home> {
   Position? positon;
   AndroidDeviceInfo? androidInfo;
   List<Placemark>? placemarks;
-  var timeLine = <Data>[];
+  ValueNotifier<List<Data>> timeLine = ValueNotifier(<Data>[]);
   var scrollController = ScrollController();
   var isLoading = true;
   var isDeviceAuthorized = true;
@@ -84,14 +84,27 @@ class _HomeState extends State<Home> {
     cameraController.dispose();
   }
 
+  Future<void> initDeviceInfo() async {
+    try {
+      androidInfo = await deviceInfo.androidInfo;
+      var uniqueId =
+          "${androidInfo!.brand}:${androidInfo!.product}:${androidInfo!.id}";
+      log(uniqueId);
+    } catch (e) {
+      log('$e');
+    } finally {
+      await checkDeviceAuthorized(
+          "${androidInfo!.brand}:${androidInfo!.product}:${androidInfo!.id}");
+    }
+  }
+
   Future<void> initPosition() async {
     try {
       positon = await PositionService.getPosition();
       log("latlng ${positon!.latitude} ${positon!.longitude}");
     } catch (e) {
-      var errorText = e.toString();
-      log(errorText);
-      _showMyDialog('Location', errorText);
+      log('$e');
+      _showMyDialog('Location', '$e');
     }
   }
 
@@ -103,21 +116,7 @@ class _HomeState extends State<Home> {
           "${placemarks!.first.subAdministrativeArea} ${placemarks!.first.locality} ${placemarks!.first.thoroughfare} ${placemarks!.first.street}";
       log(uniquePlace);
     } catch (e) {
-      log(e.toString());
-    }
-  }
-
-  Future<void> initDeviceInfo() async {
-    try {
-      androidInfo = await deviceInfo.androidInfo;
-      var uniqueId =
-          "${androidInfo!.brand}:${androidInfo!.product}:${androidInfo!.id}";
-      log(uniqueId);
-    } catch (e) {
-      log(e.toString());
-    } finally {
-      await checkDeviceAuthorized(
-          "${androidInfo!.brand}:${androidInfo!.product}:${androidInfo!.id}");
+      log('$e');
     }
   }
 
@@ -178,32 +177,34 @@ class _HomeState extends State<Home> {
   Future<void> insertLog(String id) async {
     QrData qrData = qrDataFromJson(id);
     try {
-      await HttpService.postLog(qrData.id).then((value) {
-        _showMyToast("${value.logType} ${value.name}");
-        if (value.logType != "ALREADY IN") {
-          timeLine.add(value);
-          if (timeLine.length > 5) {
-            timeLine.removeAt(0);
+      await HttpService.postLog(qrData.id).then((result) {
+        if (result.success) {
+          _showMyToast("${result.data.logType} ${result.data.name}");
+          if (result.data.logType != "ALREADY IN") {
+            timeLine.value = <Data>[...timeLine.value, result.data];
+            scrollController.animateTo(
+                scrollController.position.minScrollExtent,
+                duration: const Duration(seconds: 1),
+                curve: Curves.bounceInOut);
+            if (timeLine.value.length > 10) timeLine.value.removeAt(0);
           }
-          setState(() {});
+        } else {
+          _showMyToast(result.message);
         }
       });
     } catch (e) {
-      log(e.toString());
-      _showMyToast(e.toString());
-    } finally {
-      scrollController.animateTo(scrollController.position.minScrollExtent,
-          duration: const Duration(seconds: 2), curve: Curves.bounceInOut);
+      log('$e');
+      _showMyToast('$e');
     }
   }
 
   Future<void> checkDeviceAuthorized(String id) async {
     try {
-      await HttpService.getDeviceAuthorized(id).then((value) {
-        isDeviceAuthorized = value.authorized;
+      await HttpService.getDeviceAuthorized(id).then((result) {
+        if (!result.success) isDeviceAuthorized = false;
       });
     } catch (e) {
-      log(e.toString());
+      log('$e');
     }
   }
 
@@ -238,7 +239,6 @@ class _HomeState extends State<Home> {
               icon: const Icon(Icons.info),
               iconSize: 30.0,
               onPressed: () {
-                log("${androidInfo!.brand}:${androidInfo!.product}:${androidInfo!.id}");
                 _showMyDialog("Device info",
                     "${androidInfo!.brand}:${androidInfo!.product}:${androidInfo!.id}");
               },
@@ -277,100 +277,102 @@ class _HomeState extends State<Home> {
             ),
           ],
         ),
-        body: Center(
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              SizedBox(
-                child: MobileScanner(
-                  fit: BoxFit.cover,
-                  controller: cameraController,
-                  onDetect: (capture) async {
-                    final List<Barcode> barcodes = capture.barcodes;
-                    for (final barcode in barcodes) {
-                      log('barcode ${barcode.rawValue}');
-                      if (barcode.rawValue != null && isDeviceAuthorized) {
-                        await insertLog(barcode.rawValue!);
-                      } else {
-                        _showMyToast('Device not Authorized');
-                      }
+        body: Stack(
+          alignment: Alignment.center,
+          children: [
+            SizedBox(
+              child: MobileScanner(
+                fit: BoxFit.cover,
+                controller: cameraController,
+                onDetect: (capture) async {
+                  final List<Barcode> barcodes = capture.barcodes;
+                  for (final barcode in barcodes) {
+                    log('barcode ${barcode.rawValue}');
+                    if (barcode.rawValue != null && isDeviceAuthorized) {
+                      await insertLog(barcode.rawValue!);
+                    } else {
+                      _showMyToast('Device not Authorized');
                     }
-                  },
-                  errorBuilder: (ctx, exception, widget) => const Center(
-                    child: CircularProgressIndicator(),
-                  ),
+                  }
+                },
+                errorBuilder: (ctx, exception, widget) => const Center(
+                  child: CircularProgressIndicator(),
                 ),
               ),
-              SizedBox(
-                height: 200.0,
-                width: 200.0,
-                child: CustomPaint(
-                  foregroundPainter: BorderPainter(),
-                ),
+            ),
+            SizedBox(
+              height: 200.0,
+              width: 200.0,
+              child: CustomPaint(
+                foregroundPainter: BorderPainter(),
               ),
-              Positioned(
-                left: 5.0,
-                bottom: 5.0,
-                right: 5.0,
-                child: SizedBox(
-                  height: 70.0,
-                  child: ListView.separated(
-                    controller: scrollController,
-                    physics: const BouncingScrollPhysics(),
-                    scrollDirection: Axis.horizontal,
-                    itemCount: timeLine.length,
-                    separatorBuilder: (ctx, i) => const SizedBox(
-                      width: 5.0,
-                    ),
-                    itemBuilder: (ctx, i) {
-                      return Container(
-                        height: 70.0,
-                        width: 200.0,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(5.0),
-                          color: Palette.kMainColor,
+            ),
+            Positioned(
+              left: 5.0,
+              bottom: 5.0,
+              right: 5.0,
+              child: ValueListenableBuilder<List<Data>>(
+                  valueListenable: timeLine,
+                  builder: (ctx, data, _) {
+                    return SizedBox(
+                      height: 70.0,
+                      child: ListView.separated(
+                        controller: scrollController,
+                        physics: const BouncingScrollPhysics(),
+                        scrollDirection: Axis.horizontal,
+                        itemCount: data.length,
+                        separatorBuilder: (ctx, i) => const SizedBox(
+                          width: 5.0,
                         ),
-                        child: Center(
-                          child: Text(
-                            "${timeLine.reversed.toList()[i].logType} ${timeLine.reversed.toList()[i].name}",
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              fontSize: 16.0,
-                              color: Colors.white,
-                              fontWeight: FontWeight.w500,
-                              overflow: TextOverflow.ellipsis,
+                        itemBuilder: (ctx, i) {
+                          return Container(
+                            height: 70.0,
+                            width: 200.0,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(5.0),
+                              color: Palette.kMainColor,
                             ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-              Positioned(
-                top: 50.0,
-                child: ValueListenableBuilder<String>(
-                  builder: (ctx, value, _) {
-                    return Text(
-                      value,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20.0,
-                        shadows: [
-                          Shadow(
-                            blurRadius: 5.0,
-                            color: Palette.kMainColor.shade300,
-                            offset: const Offset(1.0, 1.0),
-                          ),
-                        ],
+                            child: Center(
+                              child: Text(
+                                "${data.reversed.toList()[i].logType} ${data.reversed.toList()[i].name}",
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontSize: 16.0,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w500,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
                       ),
                     );
-                  },
-                  valueListenable: currentTime,
-                ),
+                  }),
+            ),
+            Positioned(
+              top: 50.0,
+              child: ValueListenableBuilder<String>(
+                valueListenable: currentTime,
+                builder: (ctx, value, _) {
+                  return Text(
+                    value,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20.0,
+                      shadows: [
+                        Shadow(
+                          blurRadius: 5.0,
+                          color: Palette.kMainColor.shade300,
+                          offset: const Offset(1.0, 1.0),
+                        ),
+                      ],
+                    ),
+                  );
+                },
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       );
     }

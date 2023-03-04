@@ -6,17 +6,15 @@ header('Content-Type: application/json; charset=utf-8');
 $inputJSON = file_get_contents('php://input');
 $input = json_decode($inputJSON, TRUE);
 
+// data array
+$result = array('name'=>null, 'log_type'=>null);
+
 // if not put employee_id die
-if(isset($_POST['employee_id'])){
-    die('missing headers');
-}else{
+if($_SERVER['REQUEST_METHOD'] == 'POST' && array_key_exists('employee_id', $input)){
     $employee_id = $input['employee_id'];
     $log_in = 'IN';
     $log_out = 'OUT';
     $already_logged = 'ALREADY IN';
-
-    // last output
-    $result = array('name'=>null, 'log_type'=>null, 'success'=>null);
 
     // query get employee last log
     $sql_last_log = 'SELECT tbl_employee.employee_id, tbl_employee.name, tbl_logs.log_type, tbl_logs.time_stamp
@@ -47,7 +45,7 @@ if(isset($_POST['employee_id'])){
             $current_time_stamp = date('Y-m-d H:i:s');
             $time_difference = strtotime($current_time_stamp) - strtotime($time_stamp);
             // if time difference not yet 60 secods, do not log. 14400 = 4 hours
-            if($time_difference <= 60 && $log_type == 'IN'){
+            if($time_difference <= 30 && $log_type == 'IN'){
                 $result['log_type'] = $already_logged;
             }else{
                 $insert_in_employee = $conn->prepare($sql_insert_log);
@@ -63,8 +61,7 @@ if(isset($_POST['employee_id'])){
                 $insert_in_employee->execute();
             }
             $result['name'] = $employee_name;
-            $result['success'] = true;
-            echo json_encode($result);
+            echo json_encode(array('success'=>true,'message'=>'ok','data'=>$result));
         }
         // insert new log if user has no logs yet
         else{
@@ -83,23 +80,19 @@ if(isset($_POST['employee_id'])){
                 // $result = ['data' => $conn->lastInsertId()];
                 $result['name'] = $employee_name_new;
                 $result['log_type'] = $log_in;
-                $result['success'] = true;
-                echo json_encode($result);
+                echo json_encode(array('success'=>true,'message'=>'Ok','data'=>$result));
             }else{
-                $result['name'] = 'Id doesnt exist or non-active';
-                $result['log_type'] = 'ERROR';
-                $result['success'] = true;
-                echo json_encode($result);
+                echo json_encode(array('success'=>false,'message'=>'Id not valid','data'=>$result));
             }
         }
     } catch (PDOException $e) {
-        $result['name'] = $e->getMessage();
-        $result['log_type'] = 'PDOException Error';
-        $result['success'] = false;
-        echo json_encode($result);
+        echo json_encode(array('success'=>false,'message'=>$e->getMessage(),'data'=>$result));
     } finally{
         // Closing the connection.
         $conn = null;
     }
+}else{
+    echo json_encode(array('success'=>false,'message'=>'Error input','data'=>$result));
+    die();
 }
 ?>

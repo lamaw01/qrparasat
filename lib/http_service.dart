@@ -1,13 +1,13 @@
 import 'dart:developer';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'data.dart';
+import 'data_logs.dart';
 import 'device_authorized.dart';
 
 class HttpService {
   static const String _serverUrl = 'http://uc-1.dnsalias.net:55083';
 
-  static Future<Data> postLog(String id) async {
+  static Future<DataLogs> postLog(String id) async {
     var response = await http
         .post(Uri.parse('$_serverUrl/insert_log.php'),
             headers: <String, String>{
@@ -18,9 +18,9 @@ class HttpService {
         .timeout(const Duration(seconds: 5));
     log('${response.statusCode} ${response.body}');
     if (response.statusCode == 200) {
-      return dataFromJson(response.body);
+      return dataLogsFromJson(response.body);
     } else {
-      throw Exception(json.decode(response.body));
+      throw Exception(response.body);
     }
   }
 
@@ -37,7 +37,7 @@ class HttpService {
     if (response.statusCode == 200) {
       return deviceAuthorizedFromJson(response.body);
     } else {
-      throw Exception(json.decode(response.body));
+      throw Exception(response.body);
     }
   }
 }

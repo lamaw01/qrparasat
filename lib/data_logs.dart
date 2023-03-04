@@ -1,17 +1,15 @@
 // To parse this JSON data, do
 //
-//     final deviceAuthorized = deviceAuthorizedFromJson(jsonString);
+//     final dataLogs = dataLogsFromJson(jsonString);
 
 import 'dart:convert';
 
-DeviceAuthorized deviceAuthorizedFromJson(String str) =>
-    DeviceAuthorized.fromJson(json.decode(str));
+DataLogs dataLogsFromJson(String str) => DataLogs.fromJson(json.decode(str));
 
-String deviceAuthorizedToJson(DeviceAuthorized data) =>
-    json.encode(data.toJson());
+String dataLogsToJson(DataLogs data) => json.encode(data.toJson());
 
-class DeviceAuthorized {
-  DeviceAuthorized({
+class DataLogs {
+  DataLogs({
     required this.success,
     required this.message,
     required this.data,
@@ -21,8 +19,7 @@ class DeviceAuthorized {
   String message;
   Data data;
 
-  factory DeviceAuthorized.fromJson(Map<String, dynamic> json) =>
-      DeviceAuthorized(
+  factory DataLogs.fromJson(Map<String, dynamic> json) => DataLogs(
         success: json["success"],
         message: json["message"],
         data: Data.fromJson(json["data"]),
@@ -37,16 +34,20 @@ class DeviceAuthorized {
 
 class Data {
   Data({
-    required this.authorized,
+    this.name,
+    this.logType,
   });
 
-  bool? authorized;
+  String? name;
+  String? logType;
 
   factory Data.fromJson(Map<String, dynamic> json) => Data(
-        authorized: json["authorized"],
+        name: json["name"],
+        logType: json["log_type"],
       );
 
   Map<String, dynamic> toJson() => {
-        "authorized": authorized,
+        "name": name,
+        "log_type": logType,
       };
 }
