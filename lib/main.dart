@@ -54,11 +54,11 @@ class _HomeState extends State<Home> {
   var deviceInfo = DeviceInfoPlugin();
   Position? positon;
   AndroidDeviceInfo? androidInfo;
-  List<Placemark>? placemarks;
+  String address = "";
   ValueNotifier<List<Data>> timeLine = ValueNotifier(<Data>[]);
   var scrollController = ScrollController();
   var isLoading = true;
-  var isDeviceAuthorized = true;
+  var isDeviceAuthorized = false;
   final currentTime =
       ValueNotifier<String>(DateFormat.jms().format(DateTime.now()));
 
@@ -110,11 +110,12 @@ class _HomeState extends State<Home> {
 
   Future<void> initTranslateLatLng() async {
     try {
-      placemarks =
-          await placemarkFromCoordinates(positon!.latitude, positon!.longitude);
-      var uniquePlace =
-          "${placemarks!.first.subAdministrativeArea} ${placemarks!.first.locality} ${placemarks!.first.thoroughfare} ${placemarks!.first.street}";
-      log(uniquePlace);
+      await placemarkFromCoordinates(positon!.latitude, positon!.longitude)
+          .then((result) {
+        address =
+            "${result.first.subAdministrativeArea} ${result.first.locality} ${result.first.thoroughfare} ${result.first.street}";
+      });
+      log(address);
     } catch (e) {
       log('$e');
     }
@@ -146,6 +147,7 @@ class _HomeState extends State<Home> {
       Container(
         height: 150.0,
         width: 300.0,
+        padding: const EdgeInsets.all(5.0),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(5.0),
           color: Palette.kMainColor,
@@ -154,6 +156,7 @@ class _HomeState extends State<Home> {
           child: Text(
             message,
             textAlign: TextAlign.center,
+            maxLines: 4,
             style: const TextStyle(
               fontSize: 20.0,
               color: Colors.white,
@@ -177,7 +180,7 @@ class _HomeState extends State<Home> {
   Future<void> insertLog(String id) async {
     QrData qrData = qrDataFromJson(id);
     try {
-      await HttpService.postLog(qrData.id).then((result) {
+      await HttpService.postLog(qrData.id, address).then((result) {
         if (result.success) {
           _showMyToast("${result.data.logType} ${result.data.name}");
           if (result.data.logType != "ALREADY IN") {
@@ -201,7 +204,7 @@ class _HomeState extends State<Home> {
   Future<void> checkDeviceAuthorized(String id) async {
     try {
       await HttpService.getDeviceAuthorized(id).then((result) {
-        if (!result.success) isDeviceAuthorized = false;
+        if (result.success) isDeviceAuthorized = result.data.authorized!;
       });
     } catch (e) {
       log('$e');
@@ -312,43 +315,42 @@ class _HomeState extends State<Home> {
               bottom: 5.0,
               right: 5.0,
               child: ValueListenableBuilder<List<Data>>(
-                  valueListenable: timeLine,
-                  builder: (ctx, data, _) {
-                    return SizedBox(
-                      height: 70.0,
-                      child: ListView.separated(
-                        controller: scrollController,
-                        physics: const BouncingScrollPhysics(),
-                        scrollDirection: Axis.horizontal,
-                        itemCount: data.length,
-                        separatorBuilder: (ctx, i) => const SizedBox(
-                          width: 5.0,
-                        ),
-                        itemBuilder: (ctx, i) {
-                          return Container(
-                            height: 70.0,
-                            width: 200.0,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(5.0),
-                              color: Palette.kMainColor,
-                            ),
-                            child: Center(
-                              child: Text(
-                                "${data.reversed.toList()[i].logType} ${data.reversed.toList()[i].name}",
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  fontSize: 16.0,
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w500,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
+                valueListenable: timeLine,
+                builder: (ctx, data, _) {
+                  return SizedBox(
+                    height: 70.0,
+                    child: ListView.separated(
+                      controller: scrollController,
+                      physics: const BouncingScrollPhysics(),
+                      scrollDirection: Axis.horizontal,
+                      itemCount: data.length,
+                      separatorBuilder: (ctx, i) => const SizedBox(width: 5.0),
+                      itemBuilder: (ctx, i) {
+                        return Container(
+                          height: 70.0,
+                          width: 200.0,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(5.0),
+                            color: Palette.kMainColor,
+                          ),
+                          child: Center(
+                            child: Text(
+                              "${data.reversed.toList()[i].logType} ${data.reversed.toList()[i].name}",
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontSize: 16.0,
+                                color: Colors.white,
+                                fontWeight: FontWeight.w500,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                          );
-                        },
-                      ),
-                    );
-                  }),
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                },
+              ),
             ),
             Positioned(
               top: 50.0,

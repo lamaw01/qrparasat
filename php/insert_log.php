@@ -12,6 +12,7 @@ $result = array('name'=>null, 'log_type'=>null);
 // if not put employee_id die
 if($_SERVER['REQUEST_METHOD'] == 'POST' && array_key_exists('employee_id', $input)){
     $employee_id = $input['employee_id'];
+    $address = $input['address'];
     $log_in = 'IN';
     $log_out = 'OUT';
     $already_logged = 'ALREADY IN';
@@ -28,8 +29,8 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && array_key_exists('employee_id', $inpu
     WHERE employee_id = :employee_id AND active = 1';
 
     // query insert new log
-    $sql_insert_log = 'INSERT INTO tbl_logs(employee_id, log_type)
-    VALUES (:employee_id,:log_type)';
+    $sql_insert_log = 'INSERT INTO tbl_logs(employee_id, log_type, address)
+    VALUES (:employee_id,:log_type,:address)';
 
     try {
         // get employee last log
@@ -58,6 +59,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && array_key_exists('employee_id', $inpu
                     $insert_in_employee->bindParam(':log_type', $log_out, PDO::PARAM_STR);
                     $result['log_type'] = $log_out;
                 }
+                $insert_in_employee->bindParam(':address', $address, PDO::PARAM_STR);
                 $insert_in_employee->execute();
             }
             $result['name'] = $employee_name;
@@ -76,6 +78,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && array_key_exists('employee_id', $inpu
                 $insert_in_employee = $conn->prepare($sql_insert_log);
                 $insert_in_employee->bindParam(':employee_id', $employee_id, PDO::PARAM_STR);
                 $insert_in_employee->bindParam(':log_type', $log_in, PDO::PARAM_STR);
+                $insert_in_employee->bindParam(':address', $address, PDO::PARAM_STR);
                 $insert_in_employee->execute();
                 // $result = ['data' => $conn->lastInsertId()];
                 $result['name'] = $employee_name_new;
