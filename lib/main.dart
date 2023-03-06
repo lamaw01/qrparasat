@@ -8,6 +8,9 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter_styled_toast/flutter_styled_toast.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:wakelock/wakelock.dart';
+// ignore: unused_import
+import 'package:encrypt/encrypt.dart' as enc;
 import 'position_service.dart';
 import 'http_service.dart';
 import 'qr_data.dart';
@@ -20,6 +23,14 @@ void main() async {
   runApp(
     const MyApp(),
   );
+  // const plainText = '{"name":"Janrey Dumaog","id":"00699"}';
+  // final key = enc.Key.fromLength(32);
+  // final iv = enc.IV.fromLength(16);
+  // final encrypter = enc.Encrypter(enc.AES(key));
+  // final encrypted = encrypter.encrypt(plainText, iv: iv);
+  // final decrypted = encrypter.decrypt(encrypted, iv: iv);
+  // log(decrypted); // Lorem ipsum dolor sit amet, consectetur adipiscing elit
+  // log(encrypted.base64);
 }
 
 class MyApp extends StatelessWidget {
@@ -214,6 +225,7 @@ class _HomeState extends State<Home> {
   @override
   Widget build(BuildContext context) {
     // var screenSize = MediaQuery.of(context).size;
+    Wakelock.enable();
     if (isLoading) {
       return Scaffold(
         backgroundColor: Palette.kMainColor,
