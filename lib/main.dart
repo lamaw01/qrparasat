@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:developer';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
@@ -54,13 +55,18 @@ class _HomeState extends State<Home> {
   );
   var deviceInfo = DeviceInfoPlugin();
   Position? positon;
-  AndroidDeviceInfo? androidInfo;
+  String latlng = "";
   String address = "";
-  ValueNotifier<List<Data>> timeLine = ValueNotifier(<Data>[]);
+  String deviceId = "";
+  String timestamp = DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now());
+  var hasInternet = ValueNotifier(false);
+  var timeLine = ValueNotifier(<Data>[]);
   var scrollController = ScrollController();
-  var isLoading = true;
-  var isDeviceAuthorized = false;
-  final currentTime =
+  bool isLoading = true;
+  bool isDeviceAuthorized = false;
+  bool hasCheckDeviceAuthorized = false;
+  bool hasSendDeviceLog = false;
+  final currentTimeDisplay =
       ValueNotifier<String>(DateFormat.jms().format(DateTime.now()));
 
   @override
@@ -74,8 +80,14 @@ class _HomeState extends State<Home> {
         isLoading = false;
       });
     });
-    Timer.periodic(const Duration(seconds: 1), (timer) {
-      currentTime.value = DateFormat.jms().format(DateTime.now());
+    Timer.periodic(const Duration(seconds: 1), (_) {
+      currentTimeDisplay.value = DateFormat.jms().format(DateTime.now());
+    });
+    Timer.periodic(const Duration(seconds: 5), (_) async {
+      hasInternet.value = await hasNetwork();
+      log("hasInternet ${hasInternet.value}");
+      if (!hasCheckDeviceAuthorized) await checkDeviceAuthorized();
+      if (!hasSendDeviceLog) await insertDeviceLog();
     });
   }
 
@@ -87,22 +99,25 @@ class _HomeState extends State<Home> {
 
   Future<void> initDeviceInfo() async {
     try {
-      androidInfo = await deviceInfo.androidInfo;
-      var uniqueId =
-          "${androidInfo!.brand}:${androidInfo!.product}:${androidInfo!.id}";
-      log(uniqueId);
+      await deviceInfo.androidInfo.then((result) {
+        deviceId = "${result.brand}:${result.product}:${result.id}";
+      });
+      log(deviceId);
     } catch (e) {
       log('$e');
     } finally {
-      await checkDeviceAuthorized(
-          "${androidInfo!.brand}:${androidInfo!.product}:${androidInfo!.id}");
+      await checkDeviceAuthorized();
+      await insertDeviceLog();
     }
   }
 
   Future<void> initPosition() async {
     try {
-      positon = await PositionService.getPosition();
-      log("latlng ${positon!.latitude} ${positon!.longitude}");
+      await PositionService.getPosition().then((result) {
+        positon = result;
+        latlng = "${result.latitude} ${result.longitude}";
+      });
+      log("latlng $latlng");
     } catch (e) {
       log('$e');
       _showMyDialog('Location', '$e');
@@ -122,6 +137,15 @@ class _HomeState extends State<Home> {
     }
   }
 
+  Future<bool> hasNetwork() async {
+    try {
+      final result = await InternetAddress.lookup('example.com');
+      return result.isNotEmpty && result[0].rawAddress.isNotEmpty;
+    } on SocketException catch (_) {
+      return false;
+    }
+  }
+
   void _showMyDialog(String title, String message) {
     showDialog<void>(
       context: context,
@@ -129,7 +153,7 @@ class _HomeState extends State<Home> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text(title),
-          content: Text(message),
+          content: SelectableText(message),
           actions: <Widget>[
             TextButton(
               child: const Text('Ok'),
@@ -143,7 +167,18 @@ class _HomeState extends State<Home> {
     );
   }
 
-  void _showMyToast(String message) {
+  Color colorLogType(String logType) {
+    switch (logType) {
+      case 'IN':
+        return Colors.green;
+      case 'OUT':
+        return Colors.red;
+      default:
+        return Colors.orange;
+    }
+  }
+
+  void _showMyToast(String message, {bool error = false, String logType = ''}) {
     showToastWidget(
       Container(
         height: 150.0,
@@ -154,16 +189,34 @@ class _HomeState extends State<Home> {
           color: Palette.kMainColor,
         ),
         child: Center(
-          child: Text(
-            message,
-            textAlign: TextAlign.center,
-            maxLines: 4,
-            style: const TextStyle(
-              fontSize: 20.0,
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-              overflow: TextOverflow.ellipsis,
-            ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (!error) ...[
+                Text(
+                  logType,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  style: TextStyle(
+                    fontSize: 30.0,
+                    color: colorLogType(logType),
+                    fontWeight: FontWeight.w600,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                maxLines: 4,
+                style: const TextStyle(
+                  fontSize: 20.0,
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -181,10 +234,13 @@ class _HomeState extends State<Home> {
   Future<void> insertLog(String id) async {
     QrData qrData = qrDataFromJson(id);
     try {
-      await HttpService.postLog(qrData.id, address).then((result) {
+      await HttpService.insertLog(qrData.id, address, latlng, deviceId)
+          .then((result) {
         if (result.success) {
-          _showMyToast("${result.data.logType} ${result.data.name}");
+          _showMyToast("${result.data.name}",
+              logType: "${result.data.logType}");
           if (result.data.logType != "ALREADY IN") {
+            result.data.timestamp = DateFormat.jm().format(DateTime.now());
             timeLine.value = <Data>[...timeLine.value, result.data];
             scrollController.animateTo(
                 scrollController.position.minScrollExtent,
@@ -193,20 +249,32 @@ class _HomeState extends State<Home> {
             if (timeLine.value.length > 10) timeLine.value.removeAt(0);
           }
         } else {
-          _showMyToast(result.message);
+          _showMyToast(result.message, error: true);
         }
       });
     } catch (e) {
       log('$e');
-      _showMyToast('$e');
+      _showMyToast('$e', error: true);
     }
   }
 
-  Future<void> checkDeviceAuthorized(String id) async {
+  Future<void> checkDeviceAuthorized() async {
     try {
-      await HttpService.getDeviceAuthorized(id).then((result) {
-        if (result.success) isDeviceAuthorized = result.data.authorized!;
+      await HttpService.checkDeviceAuthorized(deviceId).then((result) {
+        if (result.success) {
+          isDeviceAuthorized = result.data.authorized!;
+          hasCheckDeviceAuthorized = true;
+        }
       });
+    } catch (e) {
+      log('$e');
+    }
+  }
+
+  Future<void> insertDeviceLog() async {
+    try {
+      await HttpService.insertDeviceLog(deviceId, timestamp)
+          .then((_) => hasSendDeviceLog = true);
     } catch (e) {
       log('$e');
     }
@@ -238,14 +306,18 @@ class _HomeState extends State<Home> {
     } else {
       return Scaffold(
         appBar: AppBar(
-          title: const Text('Sirius'),
+          title: ValueListenableBuilder<bool>(
+            valueListenable: hasInternet,
+            builder: (ctx, value, child) {
+              return value ? const Text('Online') : const Text('Offline');
+            },
+          ),
           actions: [
             IconButton(
               icon: const Icon(Icons.info),
               iconSize: 30.0,
               onPressed: () {
-                _showMyDialog("Device info",
-                    "${androidInfo!.brand}:${androidInfo!.product}:${androidInfo!.id}");
+                _showMyDialog("Device info", deviceId);
               },
             ),
             IconButton(
@@ -296,7 +368,7 @@ class _HomeState extends State<Home> {
                     if (barcode.rawValue != null && isDeviceAuthorized) {
                       await insertLog(barcode.rawValue!);
                     } else {
-                      _showMyToast('Device not Authorized');
+                      _showMyToast('Device not Authorized', error: true);
                     }
                   }
                 },
@@ -306,8 +378,8 @@ class _HomeState extends State<Home> {
               ),
             ),
             SizedBox(
-              height: 200.0,
-              width: 200.0,
+              height: 180.0,
+              width: 180.0,
               child: CustomPaint(
                 foregroundPainter: BorderPainter(),
               ),
@@ -330,21 +402,55 @@ class _HomeState extends State<Home> {
                       itemBuilder: (ctx, i) {
                         return Container(
                           height: 70.0,
-                          width: 200.0,
+                          width: 225.0,
+                          padding: const EdgeInsets.all(5.0),
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(5.0),
                             color: Palette.kMainColor,
                           ),
                           child: Center(
-                            child: Text(
-                              "${data.reversed.toList()[i].logType} ${data.reversed.toList()[i].name}",
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                fontSize: 16.0,
-                                color: Colors.white,
-                                fontWeight: FontWeight.w500,
-                                overflow: TextOverflow.ellipsis,
-                              ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                RichText(
+                                  text: TextSpan(
+                                    children: <TextSpan>[
+                                      TextSpan(
+                                        text:
+                                            "${data.reversed.toList()[i].logType} ",
+                                        style: TextStyle(
+                                          fontSize: 16.0,
+                                          color: colorLogType(
+                                              "${data.reversed.toList()[i].logType}"),
+                                          fontWeight: FontWeight.w600,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      TextSpan(
+                                        text:
+                                            "${data.reversed.toList()[i].timestamp}",
+                                        style: const TextStyle(
+                                          fontSize: 16.0,
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w600,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Text(
+                                  "${data.reversed.toList()[i].name}",
+                                  textAlign: TextAlign.center,
+                                  maxLines: 2,
+                                  style: const TextStyle(
+                                    fontSize: 16.0,
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w500,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         );
@@ -357,13 +463,13 @@ class _HomeState extends State<Home> {
             Positioned(
               top: 50.0,
               child: ValueListenableBuilder<String>(
-                valueListenable: currentTime,
+                valueListenable: currentTimeDisplay,
                 builder: (ctx, value, _) {
                   return Text(
                     value,
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 20.0,
+                      fontSize: 30.0,
                       shadows: [
                         Shadow(
                           blurRadius: 5.0,

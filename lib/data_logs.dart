@@ -36,18 +36,22 @@ class Data {
   Data({
     this.name,
     this.logType,
+    this.timestamp,
   });
 
   String? name;
   String? logType;
+  String? timestamp;
 
   factory Data.fromJson(Map<String, dynamic> json) => Data(
         name: json["name"],
         logType: json["log_type"],
+        timestamp: json["timestamp"],
       );
 
   Map<String, dynamic> toJson() => {
         "name": name,
         "log_type": logType,
+        "timestamp": timestamp,
       };
 }
