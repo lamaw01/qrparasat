@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:developer';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
@@ -10,6 +9,7 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter_styled_toast/flutter_styled_toast.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:wakelock/wakelock.dart';
+import 'package:internet_connection_checker/internet_connection_checker.dart';
 import 'position_service.dart';
 import 'http_service.dart';
 import 'qr_data.dart';
@@ -68,6 +68,11 @@ class _HomeState extends State<Home> {
   bool hasSendDeviceLog = false;
   final currentTimeDisplay =
       ValueNotifier<String>(DateFormat.jms().format(DateTime.now()));
+  final customInstance = InternetConnectionChecker.createInstance(
+    checkTimeout: const Duration(seconds: 5),
+    checkInterval: const Duration(seconds: 5),
+  );
+  StreamSubscription<InternetConnectionStatus>? listener;
 
   @override
   void initState() {
@@ -79,15 +84,19 @@ class _HomeState extends State<Home> {
       setState(() {
         isLoading = false;
       });
+      listener = customInstance.onStatusChange.listen((status) async {
+        if (status == InternetConnectionStatus.connected) {
+          hasInternet.value = true;
+        } else {
+          hasInternet.value = false;
+        }
+        if (!hasCheckDeviceAuthorized) await checkDeviceAuthorized();
+        if (!hasSendDeviceLog) await insertDeviceLog();
+        log("hasInternet ${hasInternet.value}");
+      });
     });
     Timer.periodic(const Duration(seconds: 1), (_) {
       currentTimeDisplay.value = DateFormat.jms().format(DateTime.now());
-    });
-    Timer.periodic(const Duration(seconds: 5), (_) async {
-      hasInternet.value = await hasNetwork();
-      log("hasInternet ${hasInternet.value}");
-      if (!hasCheckDeviceAuthorized) await checkDeviceAuthorized();
-      if (!hasSendDeviceLog) await insertDeviceLog();
     });
   }
 
@@ -95,6 +104,7 @@ class _HomeState extends State<Home> {
   void dispose() {
     super.dispose();
     cameraController.dispose();
+    listener!.cancel();
   }
 
   Future<void> initDeviceInfo() async {
@@ -134,15 +144,6 @@ class _HomeState extends State<Home> {
       log(address);
     } catch (e) {
       log('$e');
-    }
-  }
-
-  Future<bool> hasNetwork() async {
-    try {
-      final result = await InternetAddress.lookup('example.com');
-      return result.isNotEmpty && result[0].rawAddress.isNotEmpty;
-    } on SocketException catch (_) {
-      return false;
     }
   }
 
@@ -469,7 +470,7 @@ class _HomeState extends State<Home> {
                     value,
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 30.0,
+                      fontSize: 34.0,
                       shadows: [
                         Shadow(
                           blurRadius: 5.0,
