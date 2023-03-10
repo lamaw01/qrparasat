@@ -10,15 +10,19 @@ $input = json_decode($inputJSON, TRUE);
 if($_SERVER['REQUEST_METHOD'] == 'POST' && array_key_exists('device_id', $input)){
     $device_id = $input['device_id'];
     $log_time = $input['log_time'];
+    $address = $input['address'];
+    $latlng = $input['latlng'];
 
     // query insert new device logs
-    $sql_insert_device_log = 'INSERT INTO tbl_device_logs(device_id, log_time)
-    VALUES (:device_id,:log_time)';
+    $sql_insert_device_log = 'INSERT INTO tbl_device_logs(device_id, log_time, address, latlng)
+    VALUES (:device_id,:log_time,:address,:latlng)';
 
     try {
         $insert_device_log = $conn->prepare($sql_insert_device_log);
         $insert_device_log->bindParam(':device_id', $device_id, PDO::PARAM_STR);
         $insert_device_log->bindParam(':log_time', $log_time, PDO::PARAM_STR);
+        $insert_device_log->bindParam(':address', $address, PDO::PARAM_STR);
+        $insert_device_log->bindParam(':latlng', $latlng, PDO::PARAM_STR);
         $insert_device_log->execute();
         echo json_encode(array('success'=>true,'message'=>'Ok'));
     } catch (PDOException $e) {

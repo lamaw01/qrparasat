@@ -4,8 +4,38 @@ import 'dart:convert';
 import 'data_logs.dart';
 import 'device_authorized.dart';
 
+enum HttpError {
+  badRequest_400,
+  unauthorized_401,
+  forbidden_403,
+  notfound_404,
+}
+
 class HttpService {
   static const String _serverUrl = 'http://uc-1.dnsalias.net:55083';
+
+  static Exception _httpExceptions(int code) {
+    switch (code) {
+      case 400:
+        return Exception("$code Bad Request");
+      case 401:
+        return Exception("$code Unauthorized");
+      case 403:
+        return Exception("$code Forbidden");
+      case 404:
+        return Exception("$code Not Found");
+      case 500:
+        return Exception("$code Internal Server Error");
+      case 502:
+        return Exception("$code Bad Gateway");
+      case 503:
+        return Exception("$code Service Unavailable");
+      case 504:
+        return Exception("$code Gateway Timeout");
+      default:
+        return Exception("$code Unkown error");
+    }
+  }
 
   static Future<DataLogs> insertLog(
       String id, String address, String latlng, String deviceId) async {
@@ -26,7 +56,7 @@ class HttpService {
     if (response.statusCode == 200) {
       return dataLogsFromJson(response.body);
     } else if (response.statusCode > 200) {
-      throw Exception(response.statusCode);
+      throw _httpExceptions(response.statusCode);
     } else {
       throw Exception(response.body);
     }
@@ -45,21 +75,26 @@ class HttpService {
     if (response.statusCode == 200) {
       return deviceAuthorizedFromJson(response.body);
     } else if (response.statusCode > 200) {
-      throw Exception(response.statusCode);
+      throw _httpExceptions(response.statusCode);
     } else {
       throw Exception(response.body);
     }
   }
 
-  static Future<void> insertDeviceLog(String id, String logTime) async {
+  static Future<void> insertDeviceLog(
+      String id, String logTime, String address, String latlng) async {
     var response = await http
         .post(Uri.parse('$_serverUrl/insert_device_log.php'),
             headers: <String, String>{
               'Accept': '*/*',
               'Content-Type': 'application/json; charset=UTF-8',
             },
-            body: json.encode(
-                <String, dynamic>{"device_id": id, "log_time": logTime}))
+            body: json.encode(<String, dynamic>{
+              "device_id": id,
+              "log_time": logTime,
+              "address": address,
+              "latlng": latlng
+            }))
         .timeout(const Duration(seconds: 5));
     log('${response.statusCode} ${response.body}');
   }

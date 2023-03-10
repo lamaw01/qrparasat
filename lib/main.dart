@@ -58,7 +58,8 @@ class _HomeState extends State<Home> {
   String latlng = "";
   String address = "";
   String deviceId = "";
-  String timestamp = DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now());
+  String deviceTimestamp =
+      DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now());
   var hasInternet = ValueNotifier(false);
   var timeLine = ValueNotifier(<Data>[]);
   var scrollController = ScrollController();
@@ -73,6 +74,7 @@ class _HomeState extends State<Home> {
     checkInterval: const Duration(seconds: 5),
   );
   StreamSubscription<InternetConnectionStatus>? listener;
+  var errorLogs = <String>[];
 
   @override
   void initState() {
@@ -81,6 +83,8 @@ class _HomeState extends State<Home> {
       await initDeviceInfo();
       await initPosition();
       await initTranslateLatLng();
+      await checkDeviceAuthorized();
+      await insertDeviceLog();
       setState(() {
         isLoading = false;
       });
@@ -115,9 +119,7 @@ class _HomeState extends State<Home> {
       log(deviceId);
     } catch (e) {
       log('$e');
-    } finally {
-      await checkDeviceAuthorized();
-      await insertDeviceLog();
+      errorLogs.add(e.toString());
     }
   }
 
@@ -130,7 +132,7 @@ class _HomeState extends State<Home> {
       log("latlng $latlng");
     } catch (e) {
       log('$e');
-      _showMyDialog('Location', '$e');
+      errorLogs.add(e.toString());
     }
   }
 
@@ -144,26 +146,67 @@ class _HomeState extends State<Home> {
       log(address);
     } catch (e) {
       log('$e');
+      errorLogs.add(e.toString());
     }
   }
 
-  void _showMyDialog(String title, String message) {
+  Future<void> checkDeviceAuthorized() async {
+    try {
+      await HttpService.checkDeviceAuthorized(deviceId).then((result) {
+        if (result.success) {
+          isDeviceAuthorized = result.data.authorized!;
+          hasCheckDeviceAuthorized = true;
+        }
+      });
+    } catch (e) {
+      log('$e');
+      errorLogs.add(e.toString());
+    }
+  }
+
+  Future<void> insertDeviceLog() async {
+    try {
+      await HttpService.insertDeviceLog(
+              deviceId, deviceTimestamp, address, latlng)
+          .then((_) => hasSendDeviceLog = true);
+    } catch (e) {
+      log('$e');
+      errorLogs.add(e.toString());
+    }
+  }
+
+  void _showMyDialog(
+    String title, {
+    bool isError = false,
+    String? message,
+  }) {
     showDialog<void>(
       context: context,
       barrierDismissible: false, // user must tap button!
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(title),
-          content: SelectableText(message),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Ok'),
-              onPressed: () {
-                Navigator.of(context).pop();
+        if (isError) {
+          return AlertDialog(
+            content: ListView.builder(
+              itemCount: errorLogs.length,
+              itemBuilder: (ctx, i) {
+                return Text(errorLogs[i]);
               },
             ),
-          ],
-        );
+          );
+        } else {
+          return AlertDialog(
+            title: Text(title),
+            content: SelectableText(message!),
+            actions: <Widget>[
+              TextButton(
+                child: const Text('Ok'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+            ],
+          );
+        }
       },
     );
   }
@@ -211,7 +254,7 @@ class _HomeState extends State<Home> {
                 textAlign: TextAlign.center,
                 maxLines: 4,
                 style: const TextStyle(
-                  fontSize: 20.0,
+                  fontSize: 24.0,
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
                   overflow: TextOverflow.ellipsis,
@@ -250,34 +293,13 @@ class _HomeState extends State<Home> {
             if (timeLine.value.length > 10) timeLine.value.removeAt(0);
           }
         } else {
-          _showMyToast(result.message, error: true);
+          _showMyToast("SQL error", error: true);
         }
       });
     } catch (e) {
       log('$e');
-      _showMyToast('$e', error: true);
-    }
-  }
-
-  Future<void> checkDeviceAuthorized() async {
-    try {
-      await HttpService.checkDeviceAuthorized(deviceId).then((result) {
-        if (result.success) {
-          isDeviceAuthorized = result.data.authorized!;
-          hasCheckDeviceAuthorized = true;
-        }
-      });
-    } catch (e) {
-      log('$e');
-    }
-  }
-
-  Future<void> insertDeviceLog() async {
-    try {
-      await HttpService.insertDeviceLog(deviceId, timestamp)
-          .then((_) => hasSendDeviceLog = true);
-    } catch (e) {
-      log('$e');
+      _showMyToast('App error', error: true);
+      errorLogs.add(e.toString());
     }
   }
 
@@ -342,7 +364,7 @@ class _HomeState extends State<Home> {
               icon: const Icon(Icons.info),
               iconSize: 30.0,
               onPressed: () {
-                _showMyDialog("Device info", deviceId);
+                _showMyDialog("Device info", message: deviceId);
               },
             ),
             IconButton(
@@ -388,14 +410,18 @@ class _HomeState extends State<Home> {
                 controller: cameraController,
                 onDetect: (capture) async {
                   final List<Barcode> barcodes = capture.barcodes;
-                  for (final barcode in barcodes) {
-                    log('barcode ${barcode.rawValue}');
-                    if (barcode.rawValue != null && isDeviceAuthorized) {
-                      await insertLog(barcode.rawValue!);
-                    } else {
-                      _showMyToast('Device not Authorized', error: true);
-                    }
+                  // for (final barcode in barcodes) {
+                  log('barcode ${barcodes.first.rawValue}');
+                  if (barcodes.first.rawValue != null &&
+                      isDeviceAuthorized &&
+                      hasInternet.value) {
+                    await insertLog(barcodes.first.rawValue!);
+                  } else if (hasInternet.value && !isDeviceAuthorized) {
+                    _showMyToast('Device not Authorized', error: true);
+                  } else {
+                    _showMyToast('No internet connection', error: true);
                   }
+                  // }
                 },
                 errorBuilder: (ctx, exception, widget) => const Center(
                   child: CircularProgressIndicator(),
@@ -403,8 +429,8 @@ class _HomeState extends State<Home> {
               ),
             ),
             SizedBox(
-              height: 180.0,
-              width: 180.0,
+              height: 200.0,
+              width: 200.0,
               child: CustomPaint(
                 foregroundPainter: BorderPainter(),
               ),
@@ -417,7 +443,7 @@ class _HomeState extends State<Home> {
                 valueListenable: timeLine,
                 builder: (ctx, data, _) {
                   return SizedBox(
-                    height: 70.0,
+                    height: 75.0,
                     child: ListView.separated(
                       controller: scrollController,
                       physics: const BouncingScrollPhysics(),
@@ -426,7 +452,7 @@ class _HomeState extends State<Home> {
                       separatorBuilder: (ctx, i) => const SizedBox(width: 5.0),
                       itemBuilder: (ctx, i) {
                         return Container(
-                          height: 70.0,
+                          height: 75.0,
                           width: 225.0,
                           padding: const EdgeInsets.all(5.0),
                           decoration: BoxDecoration(
@@ -469,7 +495,7 @@ class _HomeState extends State<Home> {
                                   textAlign: TextAlign.center,
                                   maxLines: 2,
                                   style: const TextStyle(
-                                    fontSize: 16.0,
+                                    fontSize: 18.0,
                                     color: Colors.white,
                                     fontWeight: FontWeight.w500,
                                     overflow: TextOverflow.ellipsis,
@@ -486,22 +512,27 @@ class _HomeState extends State<Home> {
               ),
             ),
             Positioned(
-              top: 50.0,
+              top: 30.0,
               child: ValueListenableBuilder<String>(
                 valueListenable: currentTimeDisplay,
                 builder: (ctx, value, _) {
-                  return Text(
-                    value,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 34.0,
-                      shadows: [
-                        Shadow(
-                          blurRadius: 5.0,
-                          color: Palette.kMainColor.shade300,
-                          offset: const Offset(1.0, 1.0),
-                        ),
-                      ],
+                  return GestureDetector(
+                    onDoubleTap: () {
+                      _showMyDialog("Error Log", isError: true);
+                    },
+                    child: Text(
+                      value,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 60.0,
+                        shadows: [
+                          Shadow(
+                            blurRadius: 10.0,
+                            color: Colors.black,
+                            offset: Offset(1.0, 1.0),
+                          ),
+                        ],
+                      ),
                     ),
                   );
                 },
@@ -536,7 +567,7 @@ class BorderPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     double sh = size.height; // for convenient shortage
     double sw = size.width; // for convenient shortage
-    double cornerSide = sh * 0.1; // desirable value for corners side
+    double cornerSide = sh * 0.15; // desirable value for corners side
 
     Paint paint = Paint()
       ..color = Colors.red
