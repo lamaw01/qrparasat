@@ -18,7 +18,10 @@ import 'app_color.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
   runApp(
     const MyApp(),
   );
@@ -58,23 +61,23 @@ class _HomeState extends State<Home> {
   String latlng = "";
   String address = "";
   String deviceId = "";
-  String deviceTimestamp =
-      DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now());
-  var hasInternet = ValueNotifier(false);
-  var timeLine = ValueNotifier(<Data>[]);
-  var scrollController = ScrollController();
-  bool isLoading = true;
+  bool isAppLoading = true;
   bool isDeviceAuthorized = false;
   bool hasCheckDeviceAuthorized = false;
   bool hasSendDeviceLog = false;
+  var hasInternet = ValueNotifier(false);
+  var previousLogs = ValueNotifier(<Data>[]);
+  var errorLogs = <String>[];
+  var scrollController = ScrollController();
+  final deviceTimestamp =
+      DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now());
   final currentTimeDisplay =
       ValueNotifier<String>(DateFormat.jms().format(DateTime.now()));
-  final customInstance = InternetConnectionChecker.createInstance(
+  final internetChecker = InternetConnectionChecker.createInstance(
     checkTimeout: const Duration(seconds: 5),
     checkInterval: const Duration(seconds: 5),
   );
   StreamSubscription<InternetConnectionStatus>? listener;
-  var errorLogs = <String>[];
 
   @override
   void initState() {
@@ -86,9 +89,9 @@ class _HomeState extends State<Home> {
       await checkDeviceAuthorized();
       await insertDeviceLog();
       setState(() {
-        isLoading = false;
+        isAppLoading = false;
       });
-      listener = customInstance.onStatusChange.listen((status) async {
+      listener = internetChecker.onStatusChange.listen((status) async {
         if (status == InternetConnectionStatus.connected) {
           hasInternet.value = true;
         } else {
@@ -119,7 +122,7 @@ class _HomeState extends State<Home> {
       log(deviceId);
     } catch (e) {
       log('$e');
-      errorLogs.add(e.toString());
+      errorLogs.add('initDeviceInfo $e');
     }
   }
 
@@ -132,7 +135,7 @@ class _HomeState extends State<Home> {
       log("latlng $latlng");
     } catch (e) {
       log('$e');
-      errorLogs.add(e.toString());
+      errorLogs.add('initPosition $e');
     }
   }
 
@@ -146,7 +149,7 @@ class _HomeState extends State<Home> {
       log(address);
     } catch (e) {
       log('$e');
-      errorLogs.add(e.toString());
+      errorLogs.add('initTranslateLatLng $e');
     }
   }
 
@@ -160,7 +163,7 @@ class _HomeState extends State<Home> {
       });
     } catch (e) {
       log('$e');
-      errorLogs.add(e.toString());
+      errorLogs.add('checkDeviceAuthorized $e');
     }
   }
 
@@ -171,42 +174,37 @@ class _HomeState extends State<Home> {
           .then((_) => hasSendDeviceLog = true);
     } catch (e) {
       log('$e');
-      errorLogs.add(e.toString());
+      errorLogs.add('insertDeviceLog $e');
     }
   }
 
   void _showMyDialog(
     String title, {
     bool isError = false,
-    String? message,
   }) {
     showDialog<void>(
       context: context,
       barrierDismissible: false, // user must tap button!
       builder: (BuildContext context) {
-        if (isError) {
-          return AlertDialog(
-            content: ListView.builder(
-              itemCount: errorLogs.length,
-              itemBuilder: (ctx, i) {
-                return Text(errorLogs[i]);
+        return AlertDialog(
+          title: Text(title),
+          content: isError
+              ? ListView.builder(
+                  itemCount: errorLogs.length,
+                  itemBuilder: (ctx, i) {
+                    return Text(errorLogs[i]);
+                  },
+                )
+              : SelectableText(deviceId),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Ok'),
+              onPressed: () {
+                Navigator.of(context).pop();
               },
             ),
-          );
-        } else {
-          return AlertDialog(
-            title: Text(title),
-            content: SelectableText(message!),
-            actions: <Widget>[
-              TextButton(
-                child: const Text('Ok'),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-              ),
-            ],
-          );
-        }
+          ],
+        );
       },
     );
   }
@@ -276,8 +274,8 @@ class _HomeState extends State<Home> {
   }
 
   Future<void> insertLog(String id) async {
-    QrData qrData = qrDataFromJson(id);
     try {
+      QrData qrData = qrDataFromJson(id);
       await HttpService.insertLog(qrData.id, address, latlng, deviceId)
           .then((result) {
         if (result.success) {
@@ -285,21 +283,22 @@ class _HomeState extends State<Home> {
               logType: "${result.data.logType}");
           if (result.data.logType != "ALREADY IN") {
             result.data.timestamp = DateFormat.jm().format(DateTime.now());
-            timeLine.value = <Data>[...timeLine.value, result.data];
+            previousLogs.value = <Data>[...previousLogs.value, result.data];
             scrollController.animateTo(
                 scrollController.position.minScrollExtent,
                 duration: const Duration(seconds: 1),
                 curve: Curves.bounceInOut);
-            if (timeLine.value.length > 10) timeLine.value.removeAt(0);
+            if (previousLogs.value.length > 10) previousLogs.value.removeAt(0);
           }
         } else {
           _showMyToast("SQL error", error: true);
+          errorLogs.add('insertLog ${result.message}');
         }
       });
     } catch (e) {
       log('$e');
       _showMyToast('App error', error: true);
-      errorLogs.add(e.toString());
+      errorLogs.add('insertLog $e');
     }
   }
 
@@ -307,7 +306,7 @@ class _HomeState extends State<Home> {
   Widget build(BuildContext context) {
     // var screenSize = MediaQuery.of(context).size;
     Wakelock.enable();
-    if (isLoading) {
+    if (isAppLoading) {
       return Scaffold(
         backgroundColor: Palette.kMainColor,
         body: Center(
@@ -364,7 +363,7 @@ class _HomeState extends State<Home> {
               icon: const Icon(Icons.info),
               iconSize: 30.0,
               onPressed: () {
-                _showMyDialog("Device info", message: deviceId);
+                _showMyDialog("Device info");
               },
             ),
             IconButton(
@@ -404,27 +403,44 @@ class _HomeState extends State<Home> {
         body: Stack(
           alignment: Alignment.center,
           children: [
-            SizedBox(
-              child: MobileScanner(
-                fit: BoxFit.cover,
-                controller: cameraController,
-                onDetect: (capture) async {
-                  final List<Barcode> barcodes = capture.barcodes;
-                  // for (final barcode in barcodes) {
-                  log('barcode ${barcodes.first.rawValue}');
-                  if (barcodes.first.rawValue != null &&
-                      isDeviceAuthorized &&
-                      hasInternet.value) {
-                    await insertLog(barcodes.first.rawValue!);
-                  } else if (hasInternet.value && !isDeviceAuthorized) {
-                    _showMyToast('Device not Authorized', error: true);
-                  } else {
-                    _showMyToast('No internet connection', error: true);
-                  }
-                  // }
-                },
-                errorBuilder: (ctx, exception, widget) => const Center(
-                  child: CircularProgressIndicator(),
+            Center(
+              child: SizedBox(
+                child: MobileScanner(
+                  fit: BoxFit.cover,
+                  controller: cameraController,
+                  onDetect: (capture) async {
+                    final List<Barcode> barcodes = capture.barcodes;
+                    // for (final barcode in barcodes) {
+                    log('barcode ${barcodes.first.rawValue}');
+                    if (barcodes.first.rawValue != null &&
+                        isDeviceAuthorized &&
+                        hasInternet.value) {
+                      await insertLog(barcodes.first.rawValue!);
+                    } else if (hasInternet.value && !isDeviceAuthorized) {
+                      _showMyToast('Device not Authorized', error: true);
+                    } else {
+                      _showMyToast('No internet connection', error: true);
+                    }
+                    // }
+                  },
+                  errorBuilder: (ctx, exception, widget) => SizedBox(
+                    height: 150.0,
+                    width: 150.0,
+                    child: Center(
+                      child: Text(
+                        exception.errorDetails!.message!,
+                        textAlign: TextAlign.center,
+                        maxLines: 3,
+                        style: const TextStyle(
+                          fontSize: 16.0,
+                          fontWeight: FontWeight.w500,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                  ),
+                  placeholderBuilder: (ctx, widget) =>
+                      const CircularProgressIndicator(),
                 ),
               ),
             ),
@@ -440,7 +456,7 @@ class _HomeState extends State<Home> {
               bottom: 5.0,
               right: 5.0,
               child: ValueListenableBuilder<List<Data>>(
-                valueListenable: timeLine,
+                valueListenable: previousLogs,
                 builder: (ctx, data, _) {
                   return SizedBox(
                     height: 75.0,
@@ -518,13 +534,13 @@ class _HomeState extends State<Home> {
                 builder: (ctx, value, _) {
                   return GestureDetector(
                     onDoubleTap: () {
-                      _showMyDialog("Error Log", isError: true);
+                      _showMyDialog("Error Logs", isError: true);
                     },
                     child: Text(
                       value,
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 60.0,
+                        fontSize: 56.0,
                         shadows: [
                           Shadow(
                             blurRadius: 10.0,

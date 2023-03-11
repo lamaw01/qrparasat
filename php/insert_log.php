@@ -34,7 +34,6 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && array_key_exists('employee_id', $inpu
     // query insert new log
     $sql_insert_log = 'INSERT INTO tbl_logs(employee_id, log_type, address, latlng, device_id)
     VALUES (:employee_id,:log_type,:address,:latlng,:device_id)';
-
     try {
         // get employee last log
         $get_employee_last_log = $conn->prepare($sql_last_log);
@@ -48,7 +47,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && array_key_exists('employee_id', $inpu
             $log_type = $result_last_log['log_type'];
             $time_stamp = $result_last_log['time_stamp'];
             $time_difference = strtotime($current_time_stamp) - strtotime($time_stamp);
-            // if time difference not yet 60 secods, do not log. 14400 = 4 hours
+            // if time difference not yet 30 secods, do not log. 14400 = 4 hours
             if($time_difference <= 30 && $log_type == 'IN'){
                 $result['log_type'] = $already_logged;
             }else{

@@ -4,13 +4,6 @@ import 'dart:convert';
 import 'data_logs.dart';
 import 'device_authorized.dart';
 
-enum HttpError {
-  badRequest_400,
-  unauthorized_401,
-  forbidden_403,
-  notfound_404,
-}
-
 class HttpService {
   static const String _serverUrl = 'http://uc-1.dnsalias.net:55083';
 

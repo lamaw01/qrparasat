@@ -20,6 +20,7 @@ class PositionService {
       return Future.error(
           'Location permissions are permanently denied, we cannot request permissions.');
     }
-    return await Geolocator.getCurrentPosition();
+    return await Geolocator.getCurrentPosition(
+        timeLimit: const Duration(seconds: 5));
   }
 }
