@@ -21,6 +21,6 @@ class PositionService {
           'Location permissions are permanently denied, we cannot request permissions.');
     }
     return await Geolocator.getCurrentPosition(
-        timeLimit: const Duration(seconds: 5));
+        timeLimit: const Duration(seconds: 10));
   }
 }
