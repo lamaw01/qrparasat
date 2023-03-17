@@ -51,7 +51,7 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-  MobileScannerController cameraController = MobileScannerController(
+  final cameraController = MobileScannerController(
     detectionSpeed: DetectionSpeed.normal,
     detectionTimeoutMs: 5000,
     formats: [BarcodeFormat.qrCode],
@@ -61,6 +61,7 @@ class _HomeState extends State<Home> {
   String latlng = "";
   String address = "";
   String deviceId = "";
+  String branchId = "";
   bool isAppLoading = true;
   bool isDeviceAuthorized = false;
   bool hasCheckDeviceAuthorized = false;
@@ -157,7 +158,8 @@ class _HomeState extends State<Home> {
     try {
       await HttpService.checkDeviceAuthorized(deviceId).then((result) {
         if (result.success) {
-          isDeviceAuthorized = result.data.authorized!;
+          isDeviceAuthorized = result.data.authorized;
+          branchId = result.data.branchId;
           hasCheckDeviceAuthorized = true;
         }
       });
@@ -276,7 +278,8 @@ class _HomeState extends State<Home> {
   Future<void> insertLog(String id) async {
     try {
       QrData qrData = qrDataFromJson(id);
-      await HttpService.insertLog(qrData.id, address, latlng, deviceId)
+      await HttpService.insertLog(
+              qrData.id, address, latlng, deviceId, branchId)
           .then((result) {
         if (result.success) {
           _showMyToast("${result.data.name}",
@@ -288,16 +291,24 @@ class _HomeState extends State<Home> {
                 scrollController.position.minScrollExtent,
                 duration: const Duration(seconds: 1),
                 curve: Curves.bounceInOut);
-            if (previousLogs.value.length > 10) previousLogs.value.removeAt(0);
+            if (previousLogs.value.length > 20) previousLogs.value.removeAt(0);
           }
+        } else if (result.message == "Invalid id") {
+          _showMyToast(result.message, error: true);
+        } else if (result.message == "User not in branch") {
+          _showMyToast(result.message, error: true);
         } else {
-          _showMyToast("SQL error", error: true);
-          errorLogs.add('insertLog ${result.message}');
+          _showMyToast("Unkown Error", error: true);
         }
+        errorLogs.add('insertLog ${result.message}');
       });
-    } catch (e) {
+    } on FormatException catch (e) {
       log('$e');
-      _showMyToast('App error', error: true);
+      _showMyToast('Invalid QR Code', error: true);
+      errorLogs.add('insertLog $e');
+    } on TimeoutException catch (e) {
+      log('$e');
+      _showMyToast('Request Timeout', error: true);
       errorLogs.add('insertLog $e');
     }
   }
@@ -407,7 +418,11 @@ class _HomeState extends State<Home> {
               child: SizedBox(
                 child: MobileScanner(
                   fit: BoxFit.cover,
+                  startDelay: true,
                   controller: cameraController,
+                  onScannerStarted: (arg) {
+                    cameraController.stop();
+                  },
                   onDetect: (capture) async {
                     final List<Barcode> barcodes = capture.barcodes;
                     // for (final barcode in barcodes) {
