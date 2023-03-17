@@ -50,6 +50,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && array_key_exists('employee_id', $inpu
             echo json_encode(array('success'=>false,'message'=>'Invalid id','data'=>$result));
             return;
         }
+        $employee_name = $result_valid_id['name'];
         // check if user exist in the branch
         $get_employee_branch = $conn->prepare($sql_check_employee_branch);
         $get_employee_branch->bindParam(':employee_id', $employee_id, PDO::PARAM_STR);
@@ -64,7 +65,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && array_key_exists('employee_id', $inpu
             $result_last_log = $get_employee_last_log->fetch(PDO::FETCH_ASSOC);
             // insert new log
             if($result_last_log){
-                $employee_name = $result_last_log['name'];
+                // $employee_name = $result_last_log['name'];
                 $log_type = $result_last_log['log_type'];
                 $time_stamp = $result_last_log['time_stamp'];
                 $time_difference = strtotime($current_time_stamp) - strtotime($time_stamp);
@@ -92,28 +93,17 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && array_key_exists('employee_id', $inpu
             }
             // insert new log if user has no logs yet
             else{
-                //check if employee id exist
-                $get_employee_exist = $conn->prepare($sql_check_employee_exist);
-                $get_employee_exist->bindParam(':employee_id', $employee_id, PDO::PARAM_STR);
-                $get_employee_exist->execute();
-                $result_employee_exist = $get_employee_exist->fetch(PDO::FETCH_ASSOC);
-                // if exist insert log
-                if($result_employee_exist){
-                    $employee_name_new = $result_employee_exist['name'];
-                    $insert_in_employee = $conn->prepare($sql_insert_log);
-                    $insert_in_employee->bindParam(':employee_id', $employee_id, PDO::PARAM_STR);
-                    $insert_in_employee->bindParam(':log_type', $log_in, PDO::PARAM_STR);
-                    $insert_in_employee->bindParam(':address', $address, PDO::PARAM_STR);
-                    $insert_in_employee->bindParam(':latlng', $latlng, PDO::PARAM_STR);
-                    $insert_in_employee->bindParam(':device_id', $device_id, PDO::PARAM_STR);
-                    $insert_in_employee->execute();
-                    // $result = ['data' => $conn->lastInsertId()];
-                    $result['name'] = $employee_name_new;
-                    $result['log_type'] = $log_in;
-                    echo json_encode(array('success'=>true,'message'=>'Ok','data'=>$result));
-                }else{
-                    echo json_encode(array('success'=>false,'message'=>'User doesnt exist','data'=>$result));
-                }
+                $insert_in_employee = $conn->prepare($sql_insert_log);
+                $insert_in_employee->bindParam(':employee_id', $employee_id, PDO::PARAM_STR);
+                $insert_in_employee->bindParam(':log_type', $log_in, PDO::PARAM_STR);
+                $insert_in_employee->bindParam(':address', $address, PDO::PARAM_STR);
+                $insert_in_employee->bindParam(':latlng', $latlng, PDO::PARAM_STR);
+                $insert_in_employee->bindParam(':device_id', $device_id, PDO::PARAM_STR);
+                $insert_in_employee->execute();
+                // $result = ['data' => $conn->lastInsertId()];
+                $result['name'] = $employee_name;
+                $result['log_type'] = $log_in;
+                echo json_encode(array('success'=>true,'message'=>'Ok','data'=>$result));
             }
         }else{
             echo json_encode(array('success'=>false,'message'=>'User not in branch','data'=>$result));
