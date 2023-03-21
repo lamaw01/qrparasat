@@ -1,15 +1,16 @@
 // To parse this JSON data, do
 //
-//     final dataLogs = dataLogsFromJson(jsonString);
+//     final DeviceModel = DeviceModelFromJson(jsonString);
 
 import 'dart:convert';
 
-DataLogs dataLogsFromJson(String str) => DataLogs.fromJson(json.decode(str));
+DeviceModel deviceModelFromJson(String str) =>
+    DeviceModel.fromJson(json.decode(str));
 
-String dataLogsToJson(DataLogs data) => json.encode(data.toJson());
+String deviceModelToJson(DeviceModel data) => json.encode(data.toJson());
 
-class DataLogs {
-  DataLogs({
+class DeviceModel {
+  DeviceModel({
     required this.success,
     required this.message,
     required this.data,
@@ -19,7 +20,7 @@ class DataLogs {
   String message;
   Data data;
 
-  factory DataLogs.fromJson(Map<String, dynamic> json) => DataLogs(
+  factory DeviceModel.fromJson(Map<String, dynamic> json) => DeviceModel(
         success: json["success"],
         message: json["message"],
         data: Data.fromJson(json["data"]),
@@ -34,24 +35,20 @@ class DataLogs {
 
 class Data {
   Data({
-    this.name,
-    this.logType,
-    this.timestamp,
+    required this.authorized,
+    required this.branchId,
   });
 
-  String? name;
-  String? logType;
-  String? timestamp;
+  bool authorized;
+  String branchId;
 
   factory Data.fromJson(Map<String, dynamic> json) => Data(
-        name: json["name"],
-        logType: json["log_type"],
-        timestamp: json["timestamp"],
+        authorized: json["authorized"],
+        branchId: json["branch_id"],
       );
 
   Map<String, dynamic> toJson() => {
-        "name": name,
-        "log_type": logType,
-        "timestamp": timestamp,
+        "authorized": authorized,
+        "branch_id": branchId,
       };
 }

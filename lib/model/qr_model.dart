@@ -1,15 +1,15 @@
 // To parse this JSON data, do
 //
-//     final qrData = qrDataFromJson(jsonString);
+//     final QrModel = QrModelFromJson(jsonString);
 
 import 'dart:convert';
 
-QrData qrDataFromJson(String str) => QrData.fromJson(json.decode(str));
+QrModel qrModelFromJson(String str) => QrModel.fromJson(json.decode(str));
 
-String qrDataToJson(QrData data) => json.encode(data.toJson());
+String qrModelToJson(QrModel data) => json.encode(data.toJson());
 
-class QrData {
-  QrData({
+class QrModel {
+  QrModel({
     required this.name,
     required this.id,
   });
@@ -17,7 +17,7 @@ class QrData {
   String name;
   String id;
 
-  factory QrData.fromJson(Map<String, dynamic> json) => QrData(
+  factory QrModel.fromJson(Map<String, dynamic> json) => QrModel(
         name: json["name"],
         id: json["id"],
       );

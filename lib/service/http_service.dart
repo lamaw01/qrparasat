@@ -1,8 +1,8 @@
 import 'dart:developer';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'data_logs.dart';
-import 'device_data.dart';
+import '../model/log_model.dart';
+import '../model/device_model.dart';
 
 class HttpService {
   static const String _serverUrl = 'http://uc-1.dnsalias.net:55083';
@@ -30,7 +30,7 @@ class HttpService {
     }
   }
 
-  static Future<DataLogs> insertLog(String id, String address, String latlng,
+  static Future<LogModel> insertLog(String id, String address, String latlng,
       String deviceId, String branchId) async {
     var response = await http
         .post(Uri.parse('$_serverUrl/insert_log.php'),
@@ -48,7 +48,7 @@ class HttpService {
         .timeout(const Duration(seconds: 5));
     log('${response.statusCode} ${response.body}');
     if (response.statusCode == 200) {
-      return dataLogsFromJson(response.body);
+      return logModelFromJson(response.body);
     } else if (response.statusCode > 200) {
       throw _httpExceptions(response.statusCode);
     } else {
@@ -56,7 +56,7 @@ class HttpService {
     }
   }
 
-  static Future<DeviceData> checkDeviceAuthorized(String id) async {
+  static Future<DeviceModel> checkDeviceAuthorized(String id) async {
     var response = await http
         .post(Uri.parse('$_serverUrl/check_device.php'),
             headers: <String, String>{
@@ -67,7 +67,7 @@ class HttpService {
         .timeout(const Duration(seconds: 5));
     log('${response.statusCode} ${response.body}');
     if (response.statusCode == 200) {
-      return deviceDataFromJson(response.body);
+      return deviceModelFromJson(response.body);
     } else if (response.statusCode > 200) {
       throw _httpExceptions(response.statusCode);
     } else {

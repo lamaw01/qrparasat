@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-class Palette {
+class AppColor {
   static const MaterialColor kMainColor = MaterialColor(
     0xff002db3, // 0% comes in here, this will be color picked if no shade is selected when defining a Color property which doesn’t require a swatch.
     <int, Color>{
