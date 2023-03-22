@@ -1,14 +1,11 @@
 import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:battery_plus/battery_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:qrparasat/widget/loading_page.dart';
 import 'app_color.dart';
 import 'data/qr_page_data.dart';
 import 'view/qr_page.dart';
-// ignore: unused_import
-import 'widget/dialogs.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -52,7 +49,6 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> with WidgetsBindingObserver {
-  var battery = Battery();
   var loading = true;
 
   void _changeState(bool state) {
@@ -64,37 +60,11 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await context.read<QrPageData>().init();
-      battery.onBatteryStateChanged.listen((BatteryState state) async {
-        switch (state) {
-          case BatteryState.charging:
-            // Dialogs.showMyToast(state.name, context);
-            // _changeState(loading);
-            // await Future.delayed(const Duration(seconds: 3)).then((_) {
-            //   Navigator.pushReplacement<void, void>(
-            //     context,
-            //     MaterialPageRoute<void>(
-            //       builder: (BuildContext context) =>
-            //           QrPage(cameraController: cameraController),
-            //     ),
-            //   );
-            // });
-            // _changeState(loading);
-            break;
-          case BatteryState.full:
-            // Dialogs.showMyToast(state.name, context);
-            break;
-          case BatteryState.discharging:
-            // Dialogs.showMyToast(state.name, context);
-            break;
-          case BatteryState.unknown:
-            // Dialogs.showMyToast(state.name, context);
-            break;
-        }
-      });
+      _changeState(loading);
     });
-    WidgetsBinding.instance.addObserver(this);
   }
 
   @override
@@ -105,19 +75,21 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) async {
+    var instance = Provider.of<QrPageData>(context, listen: false);
     switch (state) {
       case AppLifecycleState.resumed:
         log(state.name);
-        _changeState(loading);
-        await Future.delayed(const Duration(seconds: 3)).then((_) {
-          Navigator.pushReplacement<void, void>(
-            context,
-            MaterialPageRoute<void>(
-              builder: (BuildContext context) => const QrPage(),
-            ),
-          );
-        });
-        _changeState(loading);
+        log(instance.isAppDoneInit.toString());
+        if (instance.isAppDoneInit) {
+          _changeState(loading);
+          await Future.delayed(const Duration(seconds: 3)).then((_) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                  builder: (BuildContext context) => super.widget),
+            );
+          });
+        }
         break;
       case AppLifecycleState.inactive:
         log(state.name);

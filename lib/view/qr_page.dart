@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:provider/provider.dart';
 import 'package:wakelock/wakelock.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
 
 import '../app_color.dart';
 import '../data/qr_page_data.dart';
@@ -15,30 +16,26 @@ import '../model/log_model.dart';
 import '../widget/dialogs.dart';
 
 class QrPage extends StatefulWidget {
-  const QrPage({
-    super.key,
-  });
+  const QrPage({super.key});
 
   @override
   State<QrPage> createState() => _QrPageState();
 }
 
 class _QrPageState extends State<QrPage> {
-  // ignore: unused_field
   StreamSubscription<InternetConnectionStatus>? _internetListener;
-  final cameraController = MobileScannerController(
+  final _camerController = MobileScannerController(
     detectionSpeed: DetectionSpeed.normal,
-    detectionTimeoutMs: 3000,
+    detectionTimeoutMs: 5000,
     facing: CameraFacing.front,
     formats: [BarcodeFormat.qrCode],
-    // autoStart: false,
   );
 
   @override
   void initState() {
     super.initState();
+    var instance = Provider.of<QrPageData>(context, listen: false);
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      var instance = Provider.of<QrPageData>(context, listen: false);
       _internetListener =
           instance.internetChecker.onStatusChange.listen((status) async {
         instance.internetStatus(status);
@@ -53,8 +50,9 @@ class _QrPageState extends State<QrPage> {
   @override
   void dispose() {
     super.dispose();
-    cameraController.dispose();
+    _camerController.dispose();
     _internetListener!.cancel();
+    log('dispose');
   }
 
   @override
@@ -67,21 +65,16 @@ class _QrPageState extends State<QrPage> {
           valueListenable: instance.hasInternet,
           builder: (ctx, value, child) {
             if (value) {
-              return GestureDetector(
-                onTap: () {
-                  instance.printData();
-                },
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: const [
-                    Text('Online'),
-                    Icon(
-                      Icons.signal_wifi_statusbar_4_bar,
-                      color: Colors.green,
-                    ),
-                  ],
-                ),
+              return Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: const [
+                  Text('Online'),
+                  Icon(
+                    Icons.signal_wifi_statusbar_4_bar,
+                    color: Colors.green,
+                  ),
+                ],
               );
             } else {
               return Row(
@@ -103,13 +96,14 @@ class _QrPageState extends State<QrPage> {
             icon: const Icon(Icons.info),
             iconSize: 30.0,
             onPressed: () {
-              Dialogs.showMyDialog("Device info", context);
+              Dialogs.showMyDialog("Device info", context,
+                  id: instance.deviceId);
             },
           ),
           IconButton(
             color: Colors.white,
             icon: ValueListenableBuilder(
-              valueListenable: cameraController.torchState,
+              valueListenable: _camerController.torchState,
               builder: (context, state, child) {
                 switch (state) {
                   case TorchState.off:
@@ -120,12 +114,12 @@ class _QrPageState extends State<QrPage> {
               },
             ),
             iconSize: 30.0,
-            onPressed: () => cameraController.toggleTorch(),
+            onPressed: () => _camerController.toggleTorch(),
           ),
           IconButton(
             color: Colors.white,
             icon: ValueListenableBuilder(
-              valueListenable: cameraController.cameraFacingState,
+              valueListenable: _camerController.cameraFacingState,
               builder: (context, state, child) {
                 switch (state) {
                   case CameraFacing.front:
@@ -136,7 +130,7 @@ class _QrPageState extends State<QrPage> {
               },
             ),
             iconSize: 30.0,
-            onPressed: () => cameraController.switchCamera(),
+            onPressed: () => _camerController.switchCamera(),
           ),
         ],
       ),
@@ -148,7 +142,7 @@ class _QrPageState extends State<QrPage> {
               child: MobileScanner(
                 // startDelay: true,
                 fit: BoxFit.cover,
-                controller: cameraController,
+                controller: _camerController,
                 onScannerStarted: (arg) {},
                 onDetect: (capture) async {
                   final List<Barcode> barcodes = capture.barcodes;
@@ -169,8 +163,10 @@ class _QrPageState extends State<QrPage> {
                   // }
                 },
                 errorBuilder: (ctx, exception, widget) {
-                  instance.errorList
-                      .add("message ${exception.errorDetails!.message!}");
+                  instance.addError(
+                      "errorBuilder ${exception.errorCode.name} ${exception.errorDetails!.message}");
+                  _camerController.stop();
+                  _camerController.start();
                   return SizedBox(
                     height: 150.0,
                     width: 150.0,
@@ -283,7 +279,8 @@ class _QrPageState extends State<QrPage> {
               builder: (ctx, value, _) {
                 return GestureDetector(
                   onDoubleTap: () {
-                    Dialogs.showMyDialog("Error Logs", context, isError: true);
+                    Dialogs.showMyDialog("Error Logs", context,
+                        isError: true, list: instance.errorList);
                   },
                   child: Text(
                     value,
@@ -302,6 +299,19 @@ class _QrPageState extends State<QrPage> {
                 );
               },
             ),
+          ),
+          ValueListenableBuilder<bool>(
+            valueListenable: instance.isLogging,
+            builder: (ctx, value, _) {
+              if (value) {
+                return const SpinKitFadingCircle(
+                  color: Colors.white,
+                  size: 150.0,
+                );
+              } else {
+                return const SizedBox();
+              }
+            },
           ),
         ],
       ),

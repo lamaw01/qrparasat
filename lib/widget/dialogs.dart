@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_styled_toast/flutter_styled_toast.dart';
 
 import '../app_color.dart';
-import '../data/qr_page_data.dart';
 
 class Dialogs {
   static Color colorLogType(String logType) {
@@ -71,8 +70,7 @@ class Dialogs {
   }
 
   static void showMyDialog(String title, BuildContext context,
-      {bool isError = false}) {
-    var list = QrPageData().errorList;
+      {bool isError = false, List<String>? list, String? id}) {
     showDialog<void>(
       context: context,
       barrierDismissible: false, // user must tap button!
@@ -81,12 +79,12 @@ class Dialogs {
           title: Text(title),
           content: isError
               ? ListView.builder(
-                  itemCount: list.length,
+                  itemCount: list!.length,
                   itemBuilder: (ctx, i) {
                     return Text(list[i]);
                   },
                 )
-              : SelectableText(QrPageData().deviceId),
+              : SelectableText(id!),
           actions: <Widget>[
             TextButton(
               child: const Text('Ok'),

@@ -16,6 +16,9 @@ import '../widget/dialogs.dart';
 
 class QrPageData with ChangeNotifier {
   Position? _positon;
+  // ignore: prefer_final_fields
+  var _isAppDoneInit = false;
+  bool get isAppDoneInit => _isAppDoneInit;
   var _latlng = "";
   String get latlng => _latlng;
   var _address = "";
@@ -35,6 +38,9 @@ class QrPageData with ChangeNotifier {
   // ignore: prefer_final_fields
   var _hasInternet = ValueNotifier(false);
   ValueNotifier<bool> get hasInternet => _hasInternet;
+  // ignore: prefer_final_fields
+  var _isLogging = ValueNotifier(false);
+  ValueNotifier<bool> get isLogging => _isLogging;
   final _deviceTimestamp =
       DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now());
   String get deviceTimestamp => _deviceTimestamp;
@@ -49,6 +55,14 @@ class QrPageData with ChangeNotifier {
   // ignore: prefer_final_fields
   var _errorList = <String>[];
   List<String> get errorList => _errorList;
+
+  void addError(String error) {
+    _errorList = [..._errorList, error];
+  }
+
+  void changeStateLoading() {
+    _isLogging.value = !_isLogging.value;
+  }
 
   final _deviceInfo = DeviceInfoPlugin();
 
@@ -72,12 +86,16 @@ class QrPageData with ChangeNotifier {
   }
 
   Future<void> init() async {
+    if (_isAppDoneInit) {
+      return;
+    }
     await initDeviceInfo();
     await initPosition();
     await initTranslateLatLng();
     await checkDeviceAuthorized();
     await insertDeviceLog();
-    log("_address $_address _latlng $_latlng _deviceId $_deviceId _branchId $_branchId");
+    printData();
+    _isAppDoneInit = false;
   }
 
   Future<void> initDeviceInfo() async {
@@ -149,6 +167,8 @@ class QrPageData with ChangeNotifier {
 
   Future<void> insertLog(String id, BuildContext context) async {
     try {
+      changeStateLoading();
+      await Future.delayed(const Duration(milliseconds: 500));
       QrModel qrData = qrModelFromJson(id);
       await HttpService.insertLog(
               qrData.id, address, latlng, deviceId, branchId)
@@ -184,6 +204,12 @@ class QrPageData with ChangeNotifier {
       log('$e');
       Dialogs.showMyToast('Request Timeout', context, error: true);
       _errorList.add('insertLog $e');
+    } on Exception catch (e) {
+      log('$e');
+      Dialogs.showMyToast('$e', context, error: true);
+      _errorList.add('insertLog $e');
+    } finally {
+      changeStateLoading();
     }
   }
 }
