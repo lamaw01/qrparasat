@@ -1,4 +1,4 @@
-import 'dart:developer';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../model/log_model.dart';
@@ -46,7 +46,7 @@ class HttpService {
               "branch_id": branchId
             }))
         .timeout(const Duration(seconds: 5));
-    log('${response.statusCode} ${response.body}');
+    debugPrint('${response.statusCode} ${response.body}');
     if (response.statusCode == 200) {
       return logModelFromJson(response.body);
     } else if (response.statusCode > 200) {
@@ -65,7 +65,7 @@ class HttpService {
             },
             body: json.encode(<String, dynamic>{"device_id": id}))
         .timeout(const Duration(seconds: 5));
-    log('${response.statusCode} ${response.body}');
+    debugPrint('${response.statusCode} ${response.body}');
     if (response.statusCode == 200) {
       return deviceModelFromJson(response.body);
     } else if (response.statusCode > 200) {
@@ -90,6 +90,6 @@ class HttpService {
               "latlng": latlng
             }))
         .timeout(const Duration(seconds: 5));
-    log('${response.statusCode} ${response.body}');
+    debugPrint('${response.statusCode} ${response.body}');
   }
 }

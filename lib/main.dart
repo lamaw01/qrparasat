@@ -1,4 +1,3 @@
-import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -78,8 +77,8 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     var instance = Provider.of<QrPageData>(context, listen: false);
     switch (state) {
       case AppLifecycleState.resumed:
-        log(state.name);
-        log(instance.isAppDoneInit.toString());
+        debugPrint(state.name);
+        debugPrint(instance.isAppDoneInit.toString());
         if (instance.isAppDoneInit) {
           _changeState(loading);
           await Future.delayed(const Duration(seconds: 3)).then((_) {
@@ -92,13 +91,13 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
         }
         break;
       case AppLifecycleState.inactive:
-        log(state.name);
+        debugPrint(state.name);
         break;
       case AppLifecycleState.paused:
-        log(state.name);
+        debugPrint(state.name);
         break;
       case AppLifecycleState.detached:
-        log(state.name);
+        debugPrint(state.name);
         break;
     }
   }

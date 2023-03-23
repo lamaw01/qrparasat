@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
 import 'package:intl/intl.dart';
@@ -44,6 +44,7 @@ class _QrPageState extends State<QrPage> {
         instance.currentTimeDisplay.value =
             DateFormat.jms().format(DateTime.now());
       });
+      instance.doneInit();
     });
   }
 
@@ -52,7 +53,7 @@ class _QrPageState extends State<QrPage> {
     super.dispose();
     _camerController.dispose();
     _internetListener!.cancel();
-    log('dispose');
+    debugPrint('dispose');
   }
 
   @override
@@ -147,7 +148,7 @@ class _QrPageState extends State<QrPage> {
                 onDetect: (capture) async {
                   final List<Barcode> barcodes = capture.barcodes;
                   // for (final barcode in barcodes) {
-                  log('barcode ${barcodes.first.rawValue}');
+                  debugPrint('barcode ${barcodes.first.rawValue}');
                   if (barcodes.first.rawValue != null &&
                       instance.isDeviceAuthorized &&
                       instance.hasInternet.value) {

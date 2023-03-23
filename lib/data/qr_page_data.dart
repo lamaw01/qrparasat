@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:developer';
 
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
@@ -64,6 +63,10 @@ class QrPageData with ChangeNotifier {
     _isLogging.value = !_isLogging.value;
   }
 
+  void doneInit() {
+    _isAppDoneInit = true;
+  }
+
   final _deviceInfo = DeviceInfoPlugin();
 
   void internetStatus(InternetConnectionStatus status) async {
@@ -78,11 +81,12 @@ class QrPageData with ChangeNotifier {
     if (!hasSendDeviceLog) {
       await insertDeviceLog();
     }
-    log("hasInternet ${hasInternet.value}");
+    debugPrint("hasInternet ${hasInternet.value}");
   }
 
   void printData() {
-    log("_address $_address _latlng $_latlng _deviceId $_deviceId _branchId $_branchId");
+    debugPrint(
+        "_address $_address _latlng $_latlng _deviceId $_deviceId _branchId $_branchId");
   }
 
   Future<void> init() async {
@@ -95,7 +99,6 @@ class QrPageData with ChangeNotifier {
     await checkDeviceAuthorized();
     await insertDeviceLog();
     printData();
-    _isAppDoneInit = false;
   }
 
   Future<void> initDeviceInfo() async {
@@ -103,9 +106,9 @@ class QrPageData with ChangeNotifier {
       await _deviceInfo.androidInfo.then((result) {
         _deviceId = "${result.brand}:${result.product}:${result.id}";
       });
-      log(_deviceId);
+      debugPrint(_deviceId);
     } catch (e) {
-      log('$e');
+      debugPrint('$e');
       _errorList.add('initDeviceInfo $e');
     }
   }
@@ -116,9 +119,9 @@ class QrPageData with ChangeNotifier {
         _positon = result;
         _latlng = "${result.latitude} ${result.longitude}";
       });
-      log("latlng $_latlng");
+      debugPrint("latlng $_latlng");
     } catch (e) {
-      log('$e');
+      debugPrint('$e');
       _errorList.add('initPosition $e');
     }
   }
@@ -130,9 +133,9 @@ class QrPageData with ChangeNotifier {
         _address =
             "${result.first.subAdministrativeArea} ${result.first.locality} ${result.first.thoroughfare} ${result.first.street}";
       });
-      log(_address);
+      debugPrint(_address);
     } catch (e) {
-      log('$e');
+      debugPrint('$e');
       _errorList.add('initTranslateLatLng $e');
     }
   }
@@ -147,7 +150,7 @@ class QrPageData with ChangeNotifier {
         }
       });
     } catch (e) {
-      log('$e');
+      debugPrint('$e');
       _errorList.add('checkDeviceAuthorized $e');
     }
   }
@@ -160,7 +163,7 @@ class QrPageData with ChangeNotifier {
         _hasSendDeviceLog = true;
       });
     } catch (e) {
-      log('$e');
+      debugPrint('$e');
       _errorList.add('insertDeviceLog $e');
     }
   }
@@ -197,15 +200,15 @@ class QrPageData with ChangeNotifier {
         }
       });
     } on FormatException catch (e) {
-      log('$e');
+      debugPrint('$e');
       Dialogs.showMyToast('Invalid QR Code', context, error: true);
       _errorList.add('insertLog $e');
     } on TimeoutException catch (e) {
-      log('$e');
+      debugPrint('$e');
       Dialogs.showMyToast('Request Timeout', context, error: true);
       _errorList.add('insertLog $e');
     } on Exception catch (e) {
-      log('$e');
+      debugPrint('$e');
       Dialogs.showMyToast('$e', context, error: true);
       _errorList.add('insertLog $e');
     } finally {
