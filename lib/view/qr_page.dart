@@ -44,7 +44,6 @@ class _QrPageState extends State<QrPage> {
         instance.currentTimeDisplay.value =
             DateFormat.jms().format(DateTime.now());
       });
-      instance.doneInit();
     });
   }
 
@@ -52,7 +51,9 @@ class _QrPageState extends State<QrPage> {
   void dispose() {
     super.dispose();
     _camerController.dispose();
-    _internetListener!.cancel();
+    if (_internetListener != null) {
+      _internetListener!.cancel();
+    }
     debugPrint('dispose');
   }
 
@@ -144,10 +145,11 @@ class _QrPageState extends State<QrPage> {
                 // startDelay: true,
                 fit: BoxFit.cover,
                 controller: _camerController,
-                onScannerStarted: (arg) {},
+                onScannerStarted: (MobileScannerArguments? arg) {
+                  instance.doneInit();
+                },
                 onDetect: (capture) async {
                   final List<Barcode> barcodes = capture.barcodes;
-                  // for (final barcode in barcodes) {
                   debugPrint('barcode ${barcodes.first.rawValue}');
                   if (barcodes.first.rawValue != null &&
                       instance.isDeviceAuthorized &&
@@ -161,11 +163,12 @@ class _QrPageState extends State<QrPage> {
                     Dialogs.showMyToast('No internet connection', context,
                         error: true);
                   }
-                  // }
                 },
                 errorBuilder: (ctx, exception, widget) {
+                  var errorMessage =
+                      exception.errorDetails!.message ?? "Error loading camera";
                   instance.addError(
-                      "errorBuilder ${exception.errorCode.name} ${exception.errorDetails!.message}");
+                      "errorBuilder ${exception.errorCode.name} $errorMessage");
                   _camerController.stop();
                   _camerController.start();
                   return SizedBox(
@@ -173,7 +176,7 @@ class _QrPageState extends State<QrPage> {
                     width: 150.0,
                     child: Center(
                       child: Text(
-                        exception.errorDetails!.message!,
+                        errorMessage,
                         textAlign: TextAlign.center,
                         maxLines: 3,
                         style: const TextStyle(

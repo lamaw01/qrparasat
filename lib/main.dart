@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:qrparasat/widget/loading_page.dart';
 import 'app_color.dart';
 import 'data/qr_page_data.dart';
 import 'view/qr_page.dart';
+import 'widget/loading_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

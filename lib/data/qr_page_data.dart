@@ -15,43 +15,35 @@ import '../widget/dialogs.dart';
 
 class QrPageData with ChangeNotifier {
   Position? _positon;
-  // ignore: prefer_final_fields
+  // bool if app done initializing
   var _isAppDoneInit = false;
   bool get isAppDoneInit => _isAppDoneInit;
+  // bool if uploading qr scan
+  final _isLogging = ValueNotifier(false);
+  ValueNotifier<bool> get isLogging => _isLogging;
   var _latlng = "";
-  String get latlng => _latlng;
   var _address = "";
-  String get address => _address;
   var _deviceId = "";
   String get deviceId => _deviceId;
   var _branchId = "";
-  String get branchId => _branchId;
   var _isDeviceAuthorized = false;
   bool get isDeviceAuthorized => _isDeviceAuthorized;
   var _hasCheckDeviceAuthorized = false;
-  bool get hasCheckDeviceAuthorized => _hasCheckDeviceAuthorized;
   var _hasSendDeviceLog = false;
-  bool get hasSendDeviceLog => _hasSendDeviceLog;
   var previousLogs = ValueNotifier(<Data>[]);
   final scrollController = ScrollController();
-  // ignore: prefer_final_fields
-  var _hasInternet = ValueNotifier(false);
+  final _hasInternet = ValueNotifier(false);
   ValueNotifier<bool> get hasInternet => _hasInternet;
-  // ignore: prefer_final_fields
-  var _isLogging = ValueNotifier(false);
-  ValueNotifier<bool> get isLogging => _isLogging;
-  final _deviceTimestamp =
+  // timestamp of opening device
+  final _deviceLogtime =
       DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now());
-  String get deviceTimestamp => _deviceTimestamp;
-  final _currentTimeDisplay =
+  final currentTimeDisplay =
       ValueNotifier<String>(DateFormat.jms().format(DateTime.now()));
-  ValueNotifier<String> get currentTimeDisplay => _currentTimeDisplay;
-  final _internetChecker = InternetConnectionChecker.createInstance(
+  final internetChecker = InternetConnectionChecker.createInstance(
     checkTimeout: const Duration(seconds: 5),
     checkInterval: const Duration(seconds: 5),
   );
-  InternetConnectionChecker get internetChecker => _internetChecker;
-  // ignore: prefer_final_fields
+
   var _errorList = <String>[];
   List<String> get errorList => _errorList;
 
@@ -63,22 +55,23 @@ class QrPageData with ChangeNotifier {
     _isLogging.value = !_isLogging.value;
   }
 
-  void doneInit() {
+  Future<void> doneInit() async {
     _isAppDoneInit = true;
   }
 
   final _deviceInfo = DeviceInfoPlugin();
 
+  // listens to internet status
   void internetStatus(InternetConnectionStatus status) async {
     if (status == InternetConnectionStatus.connected) {
       hasInternet.value = true;
     } else {
       hasInternet.value = false;
     }
-    if (!hasCheckDeviceAuthorized) {
+    if (!_hasCheckDeviceAuthorized) {
       await checkDeviceAuthorized();
     }
-    if (!hasSendDeviceLog) {
+    if (!_hasSendDeviceLog) {
       await insertDeviceLog();
     }
     debugPrint("hasInternet ${hasInternet.value}");
@@ -89,6 +82,7 @@ class QrPageData with ChangeNotifier {
         "_address $_address _latlng $_latlng _deviceId $_deviceId _branchId $_branchId");
   }
 
+  // initialize all functions
   Future<void> init() async {
     if (_isAppDoneInit) {
       return;
@@ -101,6 +95,7 @@ class QrPageData with ChangeNotifier {
     printData();
   }
 
+  // get device info
   Future<void> initDeviceInfo() async {
     try {
       await _deviceInfo.androidInfo.then((result) {
@@ -113,6 +108,7 @@ class QrPageData with ChangeNotifier {
     }
   }
 
+  // get lat lng of device
   Future<void> initPosition() async {
     try {
       await PositionService.getPosition().then((result) {
@@ -126,6 +122,7 @@ class QrPageData with ChangeNotifier {
     }
   }
 
+  // translate latlng to address
   Future<void> initTranslateLatLng() async {
     try {
       await placemarkFromCoordinates(_positon!.latitude, _positon!.longitude)
@@ -140,6 +137,7 @@ class QrPageData with ChangeNotifier {
     }
   }
 
+  // check if device is registered in database
   Future<void> checkDeviceAuthorized() async {
     try {
       await HttpService.checkDeviceAuthorized(_deviceId).then((result) {
@@ -155,10 +153,11 @@ class QrPageData with ChangeNotifier {
     }
   }
 
+  // insert device log to database
   Future<void> insertDeviceLog() async {
     try {
       await HttpService.insertDeviceLog(
-              _deviceId, _deviceTimestamp, _address, _latlng)
+              _deviceId, _deviceLogtime, _address, _latlng)
           .then((_) {
         _hasSendDeviceLog = true;
       });
@@ -168,13 +167,14 @@ class QrPageData with ChangeNotifier {
     }
   }
 
+  // insert employee qr scan log to database
   Future<void> insertLog(String id, BuildContext context) async {
     try {
       changeStateLoading();
       await Future.delayed(const Duration(milliseconds: 500));
       QrModel qrData = qrModelFromJson(id);
       await HttpService.insertLog(
-              qrData.id, address, latlng, deviceId, branchId)
+              qrData.id, _address, _latlng, deviceId, _branchId)
           .then((result) {
         if (result.success) {
           Dialogs.showMyToast("${result.data.name}", context,
