@@ -32,7 +32,7 @@ class QrPageData with ChangeNotifier {
   var _hasSendDeviceLog = false;
   var previousLogs = ValueNotifier(<Data>[]);
   final scrollController = ScrollController();
-  final _hasInternet = ValueNotifier(false);
+  final _hasInternet = ValueNotifier(true);
   ValueNotifier<bool> get hasInternet => _hasInternet;
   // timestamp of opening device
   final _deviceLogtime =

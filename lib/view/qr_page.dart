@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
@@ -24,33 +25,26 @@ class QrPage extends StatefulWidget {
 
 class _QrPageState extends State<QrPage> {
   StreamSubscription<InternetConnectionStatus>? _internetListener;
-  final _camerController = MobileScannerController(
-    detectionSpeed: DetectionSpeed.normal,
-    detectionTimeoutMs: 5000,
-    facing: CameraFacing.front,
-    formats: [BarcodeFormat.qrCode],
-  );
 
   @override
   void initState() {
     super.initState();
     var instance = Provider.of<QrPageData>(context, listen: false);
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      _internetListener =
-          instance.internetChecker.onStatusChange.listen((status) async {
-        instance.internetStatus(status);
-      });
       Timer.periodic(const Duration(seconds: 1), (_) {
         instance.currentTimeDisplay.value =
             DateFormat.jms().format(DateTime.now());
       });
+    });
+    _internetListener =
+        instance.internetChecker.onStatusChange.listen((status) async {
+      instance.internetStatus(status);
     });
   }
 
   @override
   void dispose() {
     super.dispose();
-    _camerController.dispose();
     if (_internetListener != null) {
       _internetListener!.cancel();
     }
@@ -59,7 +53,9 @@ class _QrPageState extends State<QrPage> {
 
   @override
   Widget build(BuildContext context) {
+    debugPrint('build qr page');
     var instance = Provider.of<QrPageData>(context, listen: false);
+    var camera = Provider.of<MobileScannerController>(context, listen: false);
     Wakelock.enable();
     return Scaffold(
       appBar: AppBar(
@@ -105,7 +101,7 @@ class _QrPageState extends State<QrPage> {
           IconButton(
             color: Colors.white,
             icon: ValueListenableBuilder(
-              valueListenable: _camerController.torchState,
+              valueListenable: camera.torchState,
               builder: (context, state, child) {
                 switch (state) {
                   case TorchState.off:
@@ -116,12 +112,12 @@ class _QrPageState extends State<QrPage> {
               },
             ),
             iconSize: 30.0,
-            onPressed: () => _camerController.toggleTorch(),
+            onPressed: () => camera.toggleTorch(),
           ),
           IconButton(
             color: Colors.white,
             icon: ValueListenableBuilder(
-              valueListenable: _camerController.cameraFacingState,
+              valueListenable: camera.cameraFacingState,
               builder: (context, state, child) {
                 switch (state) {
                   case CameraFacing.front:
@@ -132,7 +128,7 @@ class _QrPageState extends State<QrPage> {
               },
             ),
             iconSize: 30.0,
-            onPressed: () => _camerController.switchCamera(),
+            onPressed: () => camera.switchCamera(),
           ),
         ],
       ),
@@ -142,9 +138,9 @@ class _QrPageState extends State<QrPage> {
           Center(
             child: SizedBox(
               child: MobileScanner(
-                // startDelay: true,
+                startDelay: true,
                 fit: BoxFit.cover,
-                controller: _camerController,
+                controller: camera,
                 onScannerStarted: (MobileScannerArguments? arg) {
                   instance.doneInit();
                 },
@@ -164,13 +160,15 @@ class _QrPageState extends State<QrPage> {
                         error: true);
                   }
                 },
-                errorBuilder: (ctx, exception, widget) {
+                errorBuilder: (ctx, exception, _) {
                   var errorMessage =
                       exception.errorDetails!.message ?? "Error loading camera";
                   instance.addError(
                       "errorBuilder ${exception.errorCode.name} $errorMessage");
-                  _camerController.stop();
-                  _camerController.start();
+                  debugPrint(errorMessage);
+                  log(errorMessage);
+                  camera.stop();
+                  camera.start();
                   return SizedBox(
                     height: 150.0,
                     width: 150.0,

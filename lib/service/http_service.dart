@@ -46,7 +46,7 @@ class HttpService {
               "branch_id": branchId
             }))
         .timeout(const Duration(seconds: 5));
-    debugPrint('${response.statusCode} ${response.body}');
+    debugPrint('insertLog ${response.statusCode} ${response.body}');
     if (response.statusCode == 200) {
       return logModelFromJson(response.body);
     } else if (response.statusCode > 200) {
@@ -65,7 +65,7 @@ class HttpService {
             },
             body: json.encode(<String, dynamic>{"device_id": id}))
         .timeout(const Duration(seconds: 5));
-    debugPrint('${response.statusCode} ${response.body}');
+    debugPrint('checkDeviceAuthorized ${response.statusCode} ${response.body}');
     if (response.statusCode == 200) {
       return deviceModelFromJson(response.body);
     } else if (response.statusCode > 200) {
@@ -90,6 +90,6 @@ class HttpService {
               "latlng": latlng
             }))
         .timeout(const Duration(seconds: 5));
-    debugPrint('${response.statusCode} ${response.body}');
+    debugPrint('insertDeviceLog ${response.statusCode} ${response.body}');
   }
 }

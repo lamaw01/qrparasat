@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:provider/provider.dart';
 import 'app_color.dart';
 import 'data/qr_page_data.dart';
-import 'view/qr_page.dart';
 import 'widget/loading_page.dart';
 
 void main() async {
@@ -17,6 +17,14 @@ void main() async {
       providers: [
         ChangeNotifierProvider<QrPageData>(
           create: (_) => QrPageData(),
+        ),
+        Provider<MobileScannerController>(
+          create: (_) => MobileScannerController(
+            detectionSpeed: DetectionSpeed.normal,
+            detectionTimeoutMs: 5000,
+            facing: CameraFacing.front,
+            formats: [BarcodeFormat.qrCode],
+          ),
         ),
       ],
       child: const MyApp(),
@@ -48,21 +56,12 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> with WidgetsBindingObserver {
-  var loading = true;
-
-  void _changeState(bool state) {
-    setState(() {
-      loading = !state;
-    });
-  }
-
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await context.read<QrPageData>().init();
-      _changeState(loading);
     });
   }
 
@@ -75,39 +74,45 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) async {
     var instance = Provider.of<QrPageData>(context, listen: false);
+    var camera = Provider.of<MobileScannerController>(context, listen: false);
     switch (state) {
       case AppLifecycleState.resumed:
         debugPrint(state.name);
         debugPrint(instance.isAppDoneInit.toString());
         if (instance.isAppDoneInit) {
-          _changeState(loading);
-          await Future.delayed(const Duration(seconds: 3)).then((_) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                  builder: (BuildContext context) => super.widget),
-            );
-          });
+          // _changeState(_loading);
+          // await Future.delayed(const Duration(seconds: 3)).then((_) {
+          //   Navigator.pushReplacement(
+          //     context,
+          //     MaterialPageRoute(
+          //         builder: (BuildContext context) => super.widget),
+          //   );
+          // });
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (BuildContext context) => const LoadingPage(),
+            ),
+          );
         }
         break;
       case AppLifecycleState.inactive:
         debugPrint(state.name);
+        camera.stop();
         break;
       case AppLifecycleState.paused:
         debugPrint(state.name);
+        camera.stop();
         break;
       case AppLifecycleState.detached:
         debugPrint(state.name);
+        camera.stop();
         break;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (loading) {
-      return const LoadingPage();
-    } else {
-      return const QrPage();
-    }
+    return const LoadingPage();
   }
 }
