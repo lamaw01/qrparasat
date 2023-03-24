@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
@@ -24,31 +23,14 @@ class QrPage extends StatefulWidget {
 }
 
 class _QrPageState extends State<QrPage> {
-  StreamSubscription<InternetConnectionStatus>? _internetListener;
+  final _currentTimeDisplay = ValueNotifier<String>('00:00:00');
 
   @override
   void initState() {
     super.initState();
-    var instance = Provider.of<QrPageData>(context, listen: false);
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      Timer.periodic(const Duration(seconds: 1), (_) {
-        instance.currentTimeDisplay.value =
-            DateFormat.jms().format(DateTime.now());
-      });
+    Timer.periodic(const Duration(seconds: 1), (_) {
+      _currentTimeDisplay.value = DateFormat.jms().format(DateTime.now());
     });
-    _internetListener =
-        instance.internetChecker.onStatusChange.listen((status) async {
-      instance.internetStatus(status);
-    });
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-    if (_internetListener != null) {
-      _internetListener!.cancel();
-    }
-    debugPrint('dispose');
   }
 
   @override
@@ -56,6 +38,7 @@ class _QrPageState extends State<QrPage> {
     debugPrint('build qr page');
     var instance = Provider.of<QrPageData>(context, listen: false);
     var camera = Provider.of<MobileScannerController>(context, listen: false);
+    var internetChecker = Provider.of<InternetConnectionChecker>(context);
     Wakelock.enable();
     return Scaffold(
       appBar: AppBar(
@@ -143,6 +126,9 @@ class _QrPageState extends State<QrPage> {
                 controller: camera,
                 onScannerStarted: (MobileScannerArguments? arg) {
                   instance.doneInit();
+                  internetChecker.onStatusChange.listen((status) async {
+                    instance.internetStatus(status);
+                  });
                 },
                 onDetect: (capture) async {
                   final List<Barcode> barcodes = capture.barcodes;
@@ -166,7 +152,6 @@ class _QrPageState extends State<QrPage> {
                   instance.addError(
                       "errorBuilder ${exception.errorCode.name} $errorMessage");
                   debugPrint(errorMessage);
-                  log(errorMessage);
                   camera.stop();
                   camera.start();
                   return SizedBox(
@@ -186,8 +171,9 @@ class _QrPageState extends State<QrPage> {
                     ),
                   );
                 },
-                placeholderBuilder: (ctx, widget) =>
-                    const CircularProgressIndicator(),
+                placeholderBuilder: (ctx, widget) {
+                  return const CircularProgressIndicator();
+                },
               ),
             ),
           ),
@@ -277,7 +263,7 @@ class _QrPageState extends State<QrPage> {
           Positioned(
             top: 30.0,
             child: ValueListenableBuilder<String>(
-              valueListenable: instance.currentTimeDisplay,
+              valueListenable: _currentTimeDisplay,
               builder: (ctx, value, _) {
                 return GestureDetector(
                   onDoubleTap: () {

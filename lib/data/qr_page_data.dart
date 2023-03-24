@@ -15,6 +15,7 @@ import '../widget/dialogs.dart';
 
 class QrPageData with ChangeNotifier {
   Position? _positon;
+  final _deviceInfo = DeviceInfoPlugin();
   // bool if app done initializing
   var _isAppDoneInit = false;
   bool get isAppDoneInit => _isAppDoneInit;
@@ -34,18 +35,11 @@ class QrPageData with ChangeNotifier {
   final scrollController = ScrollController();
   final _hasInternet = ValueNotifier(true);
   ValueNotifier<bool> get hasInternet => _hasInternet;
+  var _errorList = <String>[];
+  List<String> get errorList => _errorList;
   // timestamp of opening device
   final _deviceLogtime =
       DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now());
-  final currentTimeDisplay =
-      ValueNotifier<String>(DateFormat.jms().format(DateTime.now()));
-  final internetChecker = InternetConnectionChecker.createInstance(
-    checkTimeout: const Duration(seconds: 5),
-    checkInterval: const Duration(seconds: 5),
-  );
-
-  var _errorList = <String>[];
-  List<String> get errorList => _errorList;
 
   void addError(String error) {
     _errorList = [..._errorList, error];
@@ -58,8 +52,6 @@ class QrPageData with ChangeNotifier {
   Future<void> doneInit() async {
     _isAppDoneInit = true;
   }
-
-  final _deviceInfo = DeviceInfoPlugin();
 
   // listens to internet status
   void internetStatus(InternetConnectionStatus status) async {

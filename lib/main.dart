@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:internet_connection_checker/internet_connection_checker.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:provider/provider.dart';
 import 'app_color.dart';
@@ -26,6 +27,12 @@ void main() async {
             formats: [BarcodeFormat.qrCode],
           ),
         ),
+        Provider<InternetConnectionChecker>(
+          create: (_) => InternetConnectionChecker.createInstance(
+            checkTimeout: const Duration(seconds: 5),
+            checkInterval: const Duration(seconds: 5),
+          ),
+        ),
       ],
       child: const MyApp(),
     ),
@@ -42,77 +49,8 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: AppColor.kMainColor,
       ),
-      home: const Home(),
+      home: const LoadingPage(),
       debugShowCheckedModeBanner: true,
     );
-  }
-}
-
-class Home extends StatefulWidget {
-  const Home({super.key});
-
-  @override
-  State<Home> createState() => _HomeState();
-}
-
-class _HomeState extends State<Home> with WidgetsBindingObserver {
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await context.read<QrPageData>().init();
-    });
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-    WidgetsBinding.instance.removeObserver(this);
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) async {
-    var instance = Provider.of<QrPageData>(context, listen: false);
-    var camera = Provider.of<MobileScannerController>(context, listen: false);
-    switch (state) {
-      case AppLifecycleState.resumed:
-        debugPrint(state.name);
-        debugPrint(instance.isAppDoneInit.toString());
-        if (instance.isAppDoneInit) {
-          // _changeState(_loading);
-          // await Future.delayed(const Duration(seconds: 3)).then((_) {
-          //   Navigator.pushReplacement(
-          //     context,
-          //     MaterialPageRoute(
-          //         builder: (BuildContext context) => super.widget),
-          //   );
-          // });
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (BuildContext context) => const LoadingPage(),
-            ),
-          );
-        }
-        break;
-      case AppLifecycleState.inactive:
-        debugPrint(state.name);
-        camera.stop();
-        break;
-      case AppLifecycleState.paused:
-        debugPrint(state.name);
-        camera.stop();
-        break;
-      case AppLifecycleState.detached:
-        debugPrint(state.name);
-        camera.stop();
-        break;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return const LoadingPage();
   }
 }

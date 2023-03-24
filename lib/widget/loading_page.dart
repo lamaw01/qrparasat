@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../app_color.dart';
+import '../data/qr_page_data.dart';
 import '../view/qr_page.dart';
 
 class LoadingPage extends StatefulWidget {
@@ -15,7 +17,7 @@ class _LoadingPageState extends State<LoadingPage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await Future.delayed(const Duration(seconds: 3)).then((_) {
+      await context.read<QrPageData>().init().then((_) {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
