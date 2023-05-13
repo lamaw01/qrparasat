@@ -50,7 +50,7 @@ class MyApp extends StatelessWidget {
         primarySwatch: AppColor.kMainColor,
       ),
       home: const LoadingPage(),
-      debugShowCheckedModeBanner: true,
+      debugShowCheckedModeBanner: false,
     );
   }
 }
