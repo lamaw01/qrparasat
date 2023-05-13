@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
@@ -40,8 +39,6 @@ class _QrPageState extends State<QrPage> {
       internetChecker.onStatusChange.listen((status) {
         instance.internetStatus(status);
       });
-      log('internetChecker');
-      log(instance.isAppDoneInit.toString());
     });
   }
 
