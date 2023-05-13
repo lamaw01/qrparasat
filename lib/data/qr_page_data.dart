@@ -6,6 +6,7 @@ import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
 import 'package:intl/intl.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../model/log_model.dart';
 import '../model/qr_model.dart';
@@ -33,13 +34,15 @@ class QrPageData with ChangeNotifier {
   var _hasSendDeviceLog = false;
   var previousLogs = ValueNotifier(<Data>[]);
   final scrollController = ScrollController();
-  final _hasInternet = ValueNotifier(true);
+  final _hasInternet = ValueNotifier(false);
   ValueNotifier<bool> get hasInternet => _hasInternet;
   var _errorList = <String>[];
   List<String> get errorList => _errorList;
   // timestamp of opening device
   final _deviceLogtime =
       DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now());
+  var _appVersion = "v0.0.0";
+  String get appVersion => _appVersion;
 
   void addError(String error) {
     _errorList = [..._errorList, error];
@@ -56,9 +59,9 @@ class QrPageData with ChangeNotifier {
   // listens to internet status
   void internetStatus(InternetConnectionStatus status) async {
     if (status == InternetConnectionStatus.connected) {
-      hasInternet.value = true;
+      _hasInternet.value = true;
     } else {
-      hasInternet.value = false;
+      _hasInternet.value = false;
     }
     if (!_hasCheckDeviceAuthorized) {
       await checkDeviceAuthorized();
@@ -66,7 +69,7 @@ class QrPageData with ChangeNotifier {
     if (!_hasSendDeviceLog) {
       await insertDeviceLog();
     }
-    debugPrint("hasInternet ${hasInternet.value}");
+    debugPrint("hasInternet ${_hasInternet.value}");
   }
 
   void printData() {
@@ -80,11 +83,24 @@ class QrPageData with ChangeNotifier {
       return;
     }
     await initDeviceInfo();
+    await initPackageInfo();
     await initPosition();
     await initTranslateLatLng();
     await checkDeviceAuthorized();
     await insertDeviceLog();
     printData();
+  }
+
+  Future<void> initPackageInfo() async {
+    try {
+      await PackageInfo.fromPlatform().then((result) {
+        _appVersion = result.version;
+        debugPrint(_appVersion);
+      });
+    } catch (e) {
+      debugPrint('$e');
+      _errorList.add('initDeviceInfo $e');
+    }
   }
 
   // get device info

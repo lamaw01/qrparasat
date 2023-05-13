@@ -84,7 +84,7 @@ class Dialogs {
                     return Text(list[i]);
                   },
                 )
-              : SelectableText(id!),
+              : SelectableText('Device id: ${id!} '),
           actions: <Widget>[
             TextButton(
               child: const Text('Ok'),

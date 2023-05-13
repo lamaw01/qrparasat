@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
@@ -31,6 +32,17 @@ class _QrPageState extends State<QrPage> {
     Timer.periodic(const Duration(seconds: 1), (_) {
       _currentTimeDisplay.value = DateFormat.jms().format(DateTime.now());
     });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      var internetChecker =
+          Provider.of<InternetConnectionChecker>(context, listen: false);
+      var instance = Provider.of<QrPageData>(context, listen: false);
+      instance.doneInit();
+      internetChecker.onStatusChange.listen((status) {
+        instance.internetStatus(status);
+      });
+      log('internetChecker');
+      log(instance.isAppDoneInit.toString());
+    });
   }
 
   @override
@@ -38,7 +50,7 @@ class _QrPageState extends State<QrPage> {
     debugPrint('build qr page');
     var instance = Provider.of<QrPageData>(context, listen: false);
     var camera = Provider.of<MobileScannerController>(context, listen: false);
-    var internetChecker = Provider.of<InternetConnectionChecker>(context);
+
     Wakelock.enable();
     return Scaffold(
       appBar: AppBar(
@@ -77,8 +89,11 @@ class _QrPageState extends State<QrPage> {
             icon: const Icon(Icons.info),
             iconSize: 30.0,
             onPressed: () {
-              Dialogs.showMyDialog("Device info", context,
-                  id: instance.deviceId);
+              Dialogs.showMyDialog(
+                'Sirius ${instance.appVersion}',
+                context,
+                id: instance.deviceId,
+              );
             },
           ),
           IconButton(
@@ -118,63 +133,58 @@ class _QrPageState extends State<QrPage> {
       body: Stack(
         alignment: Alignment.center,
         children: [
-          Center(
-            child: SizedBox(
-              child: MobileScanner(
-                startDelay: true,
-                fit: BoxFit.cover,
-                controller: camera,
-                onScannerStarted: (MobileScannerArguments? arg) {
-                  instance.doneInit();
-                  internetChecker.onStatusChange.listen((status) async {
-                    instance.internetStatus(status);
-                  });
-                },
-                onDetect: (capture) async {
-                  final List<Barcode> barcodes = capture.barcodes;
-                  debugPrint('barcode ${barcodes.first.rawValue}');
-                  if (barcodes.first.rawValue != null &&
-                      instance.isDeviceAuthorized &&
-                      instance.hasInternet.value) {
-                    await instance.insertLog(barcodes.first.rawValue!, context);
-                  } else if (instance.hasInternet.value &&
-                      !instance.isDeviceAuthorized) {
-                    Dialogs.showMyToast('Device not Authorized', context,
-                        error: true);
-                  } else {
-                    Dialogs.showMyToast('No internet connection', context,
-                        error: true);
-                  }
-                },
-                errorBuilder: (ctx, exception, _) {
-                  var errorMessage =
-                      exception.errorDetails!.message ?? "Error loading camera";
-                  instance.addError(
-                      "errorBuilder ${exception.errorCode.name} $errorMessage");
-                  debugPrint(errorMessage);
-                  camera.stop();
-                  camera.start();
-                  return SizedBox(
-                    height: 150.0,
-                    width: 150.0,
-                    child: Center(
-                      child: Text(
-                        errorMessage,
-                        textAlign: TextAlign.center,
-                        maxLines: 3,
-                        style: const TextStyle(
-                          fontSize: 16.0,
-                          fontWeight: FontWeight.w500,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+          GestureDetector(
+            onDoubleTap: () {
+              camera.switchCamera();
+            },
+            child: MobileScanner(
+              startDelay: true,
+              fit: BoxFit.cover,
+              controller: camera,
+              onDetect: (capture) async {
+                final List<Barcode> barcodes = capture.barcodes;
+                debugPrint('barcode ${barcodes.first.rawValue}');
+                if (barcodes.first.rawValue != null &&
+                    instance.isDeviceAuthorized &&
+                    instance.hasInternet.value) {
+                  await instance.insertLog(barcodes.first.rawValue!, context);
+                } else if (instance.hasInternet.value &&
+                    !instance.isDeviceAuthorized) {
+                  Dialogs.showMyToast('Device not Authorized', context,
+                      error: true);
+                } else {
+                  Dialogs.showMyToast('No internet connection', context,
+                      error: true);
+                }
+              },
+              errorBuilder: (ctx, exception, _) {
+                var errorMessage =
+                    exception.errorDetails!.message ?? "Error loading camera";
+                instance.addError(
+                    "errorBuilder ${exception.errorCode.name} $errorMessage");
+                debugPrint(errorMessage);
+                camera.stop();
+                camera.start();
+                return SizedBox(
+                  height: 150.0,
+                  width: 150.0,
+                  child: Center(
+                    child: Text(
+                      errorMessage,
+                      textAlign: TextAlign.center,
+                      maxLines: 3,
+                      style: const TextStyle(
+                        fontSize: 16.0,
+                        fontWeight: FontWeight.w500,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                  );
-                },
-                placeholderBuilder: (ctx, widget) {
-                  return const CircularProgressIndicator();
-                },
-              ),
+                  ),
+                );
+              },
+              placeholderBuilder: (ctx, widget) {
+                return const CircularProgressIndicator();
+              },
             ),
           ),
           SizedBox(
