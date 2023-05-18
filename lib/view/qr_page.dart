@@ -11,6 +11,7 @@ import 'package:flutter_spinkit/flutter_spinkit.dart';
 
 import '../app_color.dart';
 import '../data/qr_page_data.dart';
+import '../service/debouncer.dart';
 import '../widget/camera_border.dart';
 import '../model/log_model.dart';
 import '../widget/dialogs.dart';
@@ -24,13 +25,11 @@ class QrPage extends StatefulWidget {
 
 class _QrPageState extends State<QrPage> {
   final _currentTimeDisplay = ValueNotifier<String>('00:00:00');
+  final _debouncer = Debouncer();
 
   @override
   void initState() {
     super.initState();
-    Timer.periodic(const Duration(seconds: 1), (_) {
-      _currentTimeDisplay.value = DateFormat.jms().format(DateTime.now());
-    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       var internetChecker =
           Provider.of<InternetConnectionChecker>(context, listen: false);
@@ -38,6 +37,9 @@ class _QrPageState extends State<QrPage> {
       instance.doneInit();
       internetChecker.onStatusChange.listen((status) {
         instance.internetStatus(status);
+      });
+      Timer.periodic(const Duration(seconds: 1), (_) {
+        _currentTimeDisplay.value = DateFormat.jms().format(DateTime.now());
       });
     });
   }
@@ -135,24 +137,30 @@ class _QrPageState extends State<QrPage> {
               camera.switchCamera();
             },
             child: MobileScanner(
-              startDelay: true,
-              fit: BoxFit.cover,
+              // startDelay: true,
               controller: camera,
-              onDetect: (capture) async {
+              fit: BoxFit.cover,
+              onScannerStarted: (arguments) {
+                debugPrint('onScannerStarted');
+              },
+              onDetect: (capture) {
                 final List<Barcode> barcodes = capture.barcodes;
                 debugPrint('barcode ${barcodes.first.rawValue}');
-                if (barcodes.first.rawValue != null &&
-                    instance.isDeviceAuthorized &&
-                    instance.hasInternet.value) {
-                  await instance.insertLog(barcodes.first.rawValue!, context);
-                } else if (instance.hasInternet.value &&
-                    !instance.isDeviceAuthorized) {
-                  Dialogs.showMyToast('Device not Authorized', context,
-                      error: true);
-                } else {
-                  Dialogs.showMyToast('No internet connection', context,
-                      error: true);
-                }
+                _debouncer(() {
+                  debugPrint('debounce');
+                  if (barcodes.first.rawValue != null &&
+                      instance.isDeviceAuthorized &&
+                      instance.hasInternet.value) {
+                    instance.insertLog(barcodes.first.rawValue!, context);
+                  } else if (instance.hasInternet.value &&
+                      !instance.isDeviceAuthorized) {
+                    Dialogs.showMyToast('Device not Authorized', context,
+                        error: true);
+                  } else {
+                    Dialogs.showMyToast('No internet connection', context,
+                        error: true);
+                  }
+                });
               },
               errorBuilder: (ctx, exception, _) {
                 var errorMessage =

@@ -41,7 +41,7 @@ class QrPageData with ChangeNotifier {
   // timestamp of opening device
   final _deviceLogtime =
       DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now());
-  var _appVersion = "v0.0.0";
+  var _appVersion = "0.0.0";
   String get appVersion => _appVersion;
 
   void addError(String error) {
@@ -165,7 +165,7 @@ class QrPageData with ChangeNotifier {
   Future<void> insertDeviceLog() async {
     try {
       await HttpService.insertDeviceLog(
-              _deviceId, _deviceLogtime, _address, _latlng)
+              _deviceId, _deviceLogtime, _address, _latlng, _appVersion)
           .then((_) {
         _hasSendDeviceLog = true;
       });
@@ -207,6 +207,19 @@ class QrPageData with ChangeNotifier {
           _errorList.add('insertLog ${result.message}');
         }
       });
+      // previousLogs.value = <Data>[
+      //   ...previousLogs.value,
+      //   Data(
+      //     name: 'janrey dumaog',
+      //     logType: 'test',
+      //     timestamp: DateFormat.jm().format(DateTime.now()),
+      //   )
+      // ];
+      scrollController.animateTo(scrollController.position.minScrollExtent,
+          duration: const Duration(seconds: 1), curve: Curves.bounceInOut);
+      if (previousLogs.value.length > 20) {
+        previousLogs.value.removeAt(0);
+      }
     } on FormatException catch (e) {
       debugPrint('$e');
       Dialogs.showMyToast('Invalid QR Code', context, error: true);
