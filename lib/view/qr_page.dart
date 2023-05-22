@@ -14,7 +14,7 @@ import '../data/qr_page_data.dart';
 import '../service/debouncer.dart';
 import '../widget/camera_border.dart';
 import '../model/log_model.dart';
-import '../widget/dialogs.dart';
+import '../widget/app_dialogs.dart';
 
 class QrPage extends StatefulWidget {
   const QrPage({super.key});
@@ -88,11 +88,8 @@ class _QrPageState extends State<QrPage> {
             icon: const Icon(Icons.info),
             iconSize: 30.0,
             onPressed: () {
-              Dialogs.showMyDialog(
-                'Sirius ${instance.appVersion}',
-                context,
-                id: instance.deviceId,
-              );
+              AppDialogs.showAppVersionDialog('Sirius ${instance.appVersion}',
+                  'Device id: ${instance.deviceId}', context);
             },
           ),
           IconButton(
@@ -154,10 +151,10 @@ class _QrPageState extends State<QrPage> {
                     instance.insertLog(barcodes.first.rawValue!, context);
                   } else if (instance.hasInternet.value &&
                       !instance.isDeviceAuthorized) {
-                    Dialogs.showMyToast('Device not Authorized', context,
+                    AppDialogs.showMyToast('Device not Authorized', context,
                         error: true);
                   } else {
-                    Dialogs.showMyToast('No internet connection', context,
+                    AppDialogs.showMyToast('No internet connection', context,
                         error: true);
                   }
                 });
@@ -235,7 +232,7 @@ class _QrPageState extends State<QrPage> {
                                           "${data.reversed.toList()[i].logType} ",
                                       style: TextStyle(
                                         fontSize: 16.0,
-                                        color: Dialogs.colorLogType(
+                                        color: AppDialogs.colorLogType(
                                             "${data.reversed.toList()[i].logType}"),
                                         fontWeight: FontWeight.w600,
                                         overflow: TextOverflow.ellipsis,
@@ -282,8 +279,7 @@ class _QrPageState extends State<QrPage> {
               builder: (ctx, value, _) {
                 return GestureDetector(
                   onDoubleTap: () {
-                    Dialogs.showMyDialog("Error Logs", context,
-                        isError: true, list: instance.errorList);
+                    AppDialogs.showErrorLogsDialog(instance.errorList, context);
                   },
                   child: Text(
                     value,

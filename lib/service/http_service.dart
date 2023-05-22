@@ -88,7 +88,8 @@ class HttpService {
               "log_time": logTime,
               "address": address,
               "latlng": latlng,
-              "version": version
+              "version": version,
+              "app_name": 'Sirius'
             }))
         .timeout(const Duration(seconds: 5));
     debugPrint('insertDeviceLog ${response.statusCode} ${response.body}');

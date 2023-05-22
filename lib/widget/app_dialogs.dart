@@ -3,7 +3,7 @@ import 'package:flutter_styled_toast/flutter_styled_toast.dart';
 
 import '../app_color.dart';
 
-class Dialogs {
+class AppDialogs {
   static Color colorLogType(String logType) {
     switch (logType) {
       case 'IN':
@@ -69,22 +69,41 @@ class Dialogs {
     );
   }
 
-  static void showMyDialog(String title, BuildContext context,
-      {bool isError = false, List<String>? list, String? id}) {
+  static void showErrorLogsDialog(List<String> list, BuildContext context) {
     showDialog<void>(
       context: context,
-      barrierDismissible: false, // user must tap button!
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Error logs'),
+          content: ListView.builder(
+            itemCount: list.length,
+            itemBuilder: (ctx, i) {
+              return Text(list[i]);
+            },
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Ok'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  static void showAppVersionDialog(
+      String title, String id, BuildContext context) {
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text(title),
-          content: isError
-              ? ListView.builder(
-                  itemCount: list!.length,
-                  itemBuilder: (ctx, i) {
-                    return Text(list[i]);
-                  },
-                )
-              : SelectableText('Device id: ${id!} '),
+          content: SelectableText(id),
           actions: <Widget>[
             TextButton(
               child: const Text('Ok'),

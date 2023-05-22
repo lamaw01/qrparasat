@@ -12,7 +12,7 @@ import '../model/log_model.dart';
 import '../model/qr_model.dart';
 import '../service/http_service.dart';
 import '../service/position_service.dart';
-import '../widget/dialogs.dart';
+import '../widget/app_dialogs.dart';
 
 class QrPageData with ChangeNotifier {
   Position? _positon;
@@ -72,11 +72,6 @@ class QrPageData with ChangeNotifier {
     debugPrint("hasInternet ${_hasInternet.value}");
   }
 
-  void printData() {
-    debugPrint(
-        "_address $_address _latlng $_latlng _deviceId $_deviceId _branchId $_branchId");
-  }
-
   // initialize all functions
   Future<void> init() async {
     if (_isAppDoneInit) {
@@ -88,9 +83,9 @@ class QrPageData with ChangeNotifier {
     await initTranslateLatLng();
     await checkDeviceAuthorized();
     await insertDeviceLog();
-    printData();
   }
 
+  // get device version
   Future<void> initPackageInfo() async {
     try {
       await PackageInfo.fromPlatform().then((result) {
@@ -185,7 +180,7 @@ class QrPageData with ChangeNotifier {
               qrData.id, _address, _latlng, deviceId, _branchId)
           .then((result) {
         if (result.success) {
-          Dialogs.showMyToast("${result.data.name}", context,
+          AppDialogs.showMyToast("${result.data.name}", context,
               logType: "${result.data.logType}");
           if (result.data.logType != "ALREADY IN") {
             result.data.timestamp = DateFormat.jm().format(DateTime.now());
@@ -199,11 +194,11 @@ class QrPageData with ChangeNotifier {
             }
           }
         } else if (result.message == "Invalid id") {
-          Dialogs.showMyToast(result.message, context, error: true);
+          AppDialogs.showMyToast(result.message, context, error: true);
         } else if (result.message == "User not in branch") {
-          Dialogs.showMyToast(result.message, context, error: true);
+          AppDialogs.showMyToast(result.message, context, error: true);
         } else {
-          Dialogs.showMyToast("Unkown Error", context, error: true);
+          AppDialogs.showMyToast("Unkown Error", context, error: true);
           _errorList.add('insertLog ${result.message}');
         }
       });
@@ -222,15 +217,15 @@ class QrPageData with ChangeNotifier {
       }
     } on FormatException catch (e) {
       debugPrint('$e');
-      Dialogs.showMyToast('Invalid QR Code', context, error: true);
+      AppDialogs.showMyToast('Invalid QR Code', context, error: true);
       _errorList.add('insertLog $e');
     } on TimeoutException catch (e) {
       debugPrint('$e');
-      Dialogs.showMyToast('Request Timeout', context, error: true);
+      AppDialogs.showMyToast('Request Timeout', context, error: true);
       _errorList.add('insertLog $e');
     } on Exception catch (e) {
       debugPrint('$e');
-      Dialogs.showMyToast('$e', context, error: true);
+      AppDialogs.showMyToast('$e', context, error: true);
       _errorList.add('insertLog $e');
     } finally {
       changeStateLoading();

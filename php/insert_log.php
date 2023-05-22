@@ -25,7 +25,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && array_key_exists('employee_id', $inpu
     $sql_last_log = 'SELECT tbl_employee.employee_id, tbl_employee.name, tbl_logs.log_type, tbl_logs.time_stamp
     FROM tbl_employee 
     LEFT JOIN tbl_logs ON tbl_employee.employee_id = tbl_logs.employee_id
-    WHERE tbl_logs.employee_id = :employee_id AND tbl_employee.active = 1
+    WHERE tbl_logs.employee_id = :employee_id AND tbl_employee.active = 1 AND tbl_logs.is_selfie = 0
     ORDER BY tbl_logs.time_stamp DESC LIMIT 1';
 
     // query check if employee has data
@@ -58,7 +58,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && array_key_exists('employee_id', $inpu
         $get_employee_branch->execute();
         $result_employee_branch = $get_employee_branch->fetch(PDO::FETCH_ASSOC);
         if($result_employee_branch){
-             // get employee last log
+            // get employee last log
             $get_employee_last_log = $conn->prepare($sql_last_log);
             $get_employee_last_log->bindParam(':employee_id', $employee_id, PDO::PARAM_STR);
             $get_employee_last_log->execute();
