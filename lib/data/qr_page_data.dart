@@ -77,12 +77,45 @@ class QrPageData with ChangeNotifier {
     if (_isAppDoneInit) {
       return;
     }
-    await initDeviceInfo();
     await initPackageInfo();
+    await initDeviceInfo();
     await initPosition();
     await initTranslateLatLng();
     await checkDeviceAuthorized();
     await insertDeviceLog();
+  }
+
+  // check location service
+  Future<void> checkLocationService(BuildContext context) async {
+    await Geolocator.isLocationServiceEnabled().then((result) async {
+      if (!result) {
+        await showDialog<void>(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('Location service disabled'),
+              content: const Text(
+                  'Please enable the location service. After enabling press Continue.'),
+              actions: <Widget>[
+                TextButton(
+                  child: const Text('Settings'),
+                  onPressed: () {
+                    Geolocator.openLocationSettings();
+                  },
+                ),
+                TextButton(
+                  child: const Text('Continue'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      }
+    });
   }
 
   // get device version

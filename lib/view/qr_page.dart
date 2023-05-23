@@ -133,60 +133,60 @@ class _QrPageState extends State<QrPage> {
             onDoubleTap: () {
               camera.switchCamera();
             },
-            child: MobileScanner(
-              // startDelay: true,
-              controller: camera,
-              fit: BoxFit.cover,
-              onScannerStarted: (arguments) {
-                debugPrint('onScannerStarted');
-              },
-              onDetect: (capture) {
-                final List<Barcode> barcodes = capture.barcodes;
-                debugPrint('barcode ${barcodes.first.rawValue}');
-                _debouncer(() {
-                  debugPrint('debounce');
-                  if (barcodes.first.rawValue != null &&
-                      instance.isDeviceAuthorized &&
-                      instance.hasInternet.value) {
-                    instance.insertLog(barcodes.first.rawValue!, context);
-                  } else if (instance.hasInternet.value &&
-                      !instance.isDeviceAuthorized) {
-                    AppDialogs.showMyToast('Device not Authorized', context,
-                        error: true);
-                  } else {
-                    AppDialogs.showMyToast('No internet connection', context,
-                        error: true);
-                  }
-                });
-              },
-              errorBuilder: (ctx, exception, _) {
-                var errorMessage =
-                    exception.errorDetails!.message ?? "Error loading camera";
-                instance.addError(
-                    "errorBuilder ${exception.errorCode.name} $errorMessage");
-                debugPrint(errorMessage);
-                camera.stop();
-                camera.start();
-                return SizedBox(
-                  height: 150.0,
-                  width: 150.0,
-                  child: Center(
-                    child: Text(
-                      errorMessage,
-                      textAlign: TextAlign.center,
-                      maxLines: 3,
-                      style: const TextStyle(
-                        fontSize: 16.0,
-                        fontWeight: FontWeight.w500,
-                        overflow: TextOverflow.ellipsis,
+            child: Center(
+              child: MobileScanner(
+                // startDelay: true,
+                controller: camera,
+                fit: BoxFit.cover,
+                onScannerStarted: (arguments) {
+                  debugPrint('onScannerStarted');
+                },
+                onDetect: (capture) {
+                  final List<Barcode> barcodes = capture.barcodes;
+                  debugPrint('barcode ${barcodes.first.rawValue}');
+                  _debouncer(() {
+                    debugPrint('debounce');
+                    if (barcodes.first.rawValue != null &&
+                        instance.isDeviceAuthorized &&
+                        instance.hasInternet.value) {
+                      instance.insertLog(barcodes.first.rawValue!, context);
+                    } else if (instance.hasInternet.value &&
+                        !instance.isDeviceAuthorized) {
+                      AppDialogs.showMyToast('Device not Authorized', context,
+                          error: true);
+                    } else {
+                      AppDialogs.showMyToast('No internet connection', context,
+                          error: true);
+                    }
+                  });
+                },
+                errorBuilder: (ctx, exception, _) {
+                  debugPrint('errorBuilder');
+                  var errorCode = exception.errorCode.name;
+                  instance.addError("errorBuilder $errorCode");
+                  camera.stop();
+                  camera.start();
+                  return SizedBox(
+                    height: 150.0,
+                    width: 150.0,
+                    child: Center(
+                      child: Text(
+                        'Error opening camera $errorCode',
+                        textAlign: TextAlign.center,
+                        maxLines: 3,
+                        style: const TextStyle(
+                          fontSize: 16.0,
+                          fontWeight: FontWeight.w500,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ),
-                  ),
-                );
-              },
-              placeholderBuilder: (ctx, widget) {
-                return const CircularProgressIndicator();
-              },
+                  );
+                },
+                placeholderBuilder: (ctx, widget) {
+                  return const CircularProgressIndicator();
+                },
+              ),
             ),
           ),
           SizedBox(
