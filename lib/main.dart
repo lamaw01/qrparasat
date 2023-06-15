@@ -5,7 +5,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:provider/provider.dart';
 import 'app_color.dart';
 import 'data/qr_page_data.dart';
-import 'widget/loading_page.dart';
+import 'view/loading_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,7 +22,7 @@ void main() async {
         Provider<MobileScannerController>(
           create: (_) => MobileScannerController(
             detectionSpeed: DetectionSpeed.normal,
-            detectionTimeoutMs: 5000,
+            detectionTimeoutMs: 2500,
             facing: CameraFacing.front,
             formats: [BarcodeFormat.qrCode],
           ),

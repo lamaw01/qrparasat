@@ -12,48 +12,44 @@ import '../model/log_model.dart';
 import '../model/qr_model.dart';
 import '../service/http_service.dart';
 import '../service/position_service.dart';
-import '../widget/app_dialogs.dart';
 
 class QrPageData with ChangeNotifier {
   Position? _positon;
+
   final _deviceInfo = DeviceInfoPlugin();
-  // bool if app done initializing
-  var _isAppDoneInit = false;
-  bool get isAppDoneInit => _isAppDoneInit;
+
   // bool if uploading qr scan
   final _isLogging = ValueNotifier(false);
   ValueNotifier<bool> get isLogging => _isLogging;
+
   var _latlng = "";
   var _address = "";
-  var _deviceId = "";
-  String get deviceId => _deviceId;
   var _branchId = "";
-  var _isDeviceAuthorized = false;
-  bool get isDeviceAuthorized => _isDeviceAuthorized;
   var _hasCheckDeviceAuthorized = false;
   var _hasSendDeviceLog = false;
-  var previousLogs = ValueNotifier(<Data>[]);
-  final scrollController = ScrollController();
-  final _hasInternet = ValueNotifier(false);
-  ValueNotifier<bool> get hasInternet => _hasInternet;
-  var _errorList = <String>[];
-  List<String> get errorList => _errorList;
-  // timestamp of opening device
-  final _deviceLogtime =
-      DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now());
-  var _appVersion = "0.0.0";
+
+  var _appVersion = "";
   String get appVersion => _appVersion;
 
-  void addError(String error) {
-    _errorList = [..._errorList, error];
-  }
+  var _deviceId = "";
+  String get deviceId => _deviceId;
 
-  void changeStateLoading() {
-    _isLogging.value = !_isLogging.value;
-  }
+  var _isDeviceAuthorized = false;
+  bool get isDeviceAuthorized => _isDeviceAuthorized;
 
-  Future<void> doneInit() async {
-    _isAppDoneInit = true;
+  final _previousLogs = ValueNotifier(<Data>[]);
+  ValueNotifier<List<Data>> get previousLogs => _previousLogs;
+
+  final _errorList = <String>[];
+  List<String> get errorList => _errorList;
+
+  final _hasInternet = ValueNotifier(false);
+  ValueNotifier<bool> get hasInternet => _hasInternet;
+
+  final _dateFormat = DateFormat('yyyy-MM-dd HH:mm:ss');
+
+  void changeStateLoading(bool state) {
+    _isLogging.value = state;
   }
 
   // listens to internet status
@@ -74,13 +70,10 @@ class QrPageData with ChangeNotifier {
 
   // initialize all functions
   Future<void> init() async {
-    if (_isAppDoneInit) {
-      return;
-    }
-    await initPackageInfo();
-    await initDeviceInfo();
-    await initPosition();
-    await initTranslateLatLng();
+    await getPackageInfo();
+    await getDeviceInfo();
+    await getPosition();
+    await translateLatLng();
     await checkDeviceAuthorized();
     await insertDeviceLog();
   }
@@ -119,7 +112,7 @@ class QrPageData with ChangeNotifier {
   }
 
   // get device version
-  Future<void> initPackageInfo() async {
+  Future<void> getPackageInfo() async {
     try {
       await PackageInfo.fromPlatform().then((result) {
         _appVersion = result.version;
@@ -132,7 +125,7 @@ class QrPageData with ChangeNotifier {
   }
 
   // get device info
-  Future<void> initDeviceInfo() async {
+  Future<void> getDeviceInfo() async {
     try {
       await _deviceInfo.androidInfo.then((result) {
         _deviceId = "${result.brand}:${result.product}:${result.id}";
@@ -145,7 +138,7 @@ class QrPageData with ChangeNotifier {
   }
 
   // get lat lng of device
-  Future<void> initPosition() async {
+  Future<void> getPosition() async {
     try {
       await PositionService.getPosition().then((result) {
         _positon = result;
@@ -159,7 +152,7 @@ class QrPageData with ChangeNotifier {
   }
 
   // translate latlng to address
-  Future<void> initTranslateLatLng() async {
+  Future<void> translateLatLng() async {
     try {
       await placemarkFromCoordinates(_positon!.latitude, _positon!.longitude)
           .then((result) {
@@ -176,7 +169,8 @@ class QrPageData with ChangeNotifier {
   // check if device is registered in database
   Future<void> checkDeviceAuthorized() async {
     try {
-      await HttpService.checkDeviceAuthorized(_deviceId).then((result) {
+      await HttpService.checkDeviceAuthorized(deviceId: _deviceId)
+          .then((result) {
         if (result.success) {
           _isDeviceAuthorized = result.data.authorized;
           _branchId = result.data.branchId;
@@ -193,8 +187,12 @@ class QrPageData with ChangeNotifier {
   Future<void> insertDeviceLog() async {
     try {
       await HttpService.insertDeviceLog(
-              _deviceId, _deviceLogtime, _address, _latlng, _appVersion)
-          .then((_) {
+        id: _deviceId,
+        logTime: _dateFormat.format(DateTime.now()),
+        address: _address,
+        latlng: _latlng,
+        version: _appVersion,
+      ).then((_) {
         _hasSendDeviceLog = true;
       });
     } catch (e) {
@@ -204,64 +202,61 @@ class QrPageData with ChangeNotifier {
   }
 
   // insert employee qr scan log to database
-  Future<void> insertLog(String id, BuildContext context) async {
+  Future<LogReturn> insertLog({
+    required String qrData,
+    required BuildContext context,
+  }) async {
+    changeStateLoading(true);
     try {
-      changeStateLoading();
       await Future.delayed(const Duration(milliseconds: 500));
-      QrModel qrData = qrModelFromJson(id);
-      await HttpService.insertLog(
-              qrData.id, _address, _latlng, deviceId, _branchId)
-          .then((result) {
-        if (result.success) {
-          AppDialogs.showMyToast("${result.data.name}", context,
-              logType: "${result.data.logType}");
-          if (result.data.logType != "ALREADY IN") {
-            result.data.timestamp = DateFormat.jm().format(DateTime.now());
-            previousLogs.value = <Data>[...previousLogs.value, result.data];
-            scrollController.animateTo(
-                scrollController.position.minScrollExtent,
-                duration: const Duration(seconds: 1),
-                curve: Curves.bounceInOut);
-            if (previousLogs.value.length > 20) {
-              previousLogs.value.removeAt(0);
-            }
-          }
-        } else if (result.message == "Invalid id") {
-          AppDialogs.showMyToast(result.message, context, error: true);
-        } else if (result.message == "User not in branch") {
-          AppDialogs.showMyToast(result.message, context, error: true);
-        } else {
-          AppDialogs.showMyToast("Unkown Error", context, error: true);
-          _errorList.add('insertLog ${result.message}');
-        }
-      });
-      // previousLogs.value = <Data>[
-      //   ...previousLogs.value,
-      //   Data(
-      //     name: 'janrey dumaog',
-      //     logType: 'test',
-      //     timestamp: DateFormat.jm().format(DateTime.now()),
-      //   )
-      // ];
-      scrollController.animateTo(scrollController.position.minScrollExtent,
-          duration: const Duration(seconds: 1), curve: Curves.bounceInOut);
-      if (previousLogs.value.length > 20) {
-        previousLogs.value.removeAt(0);
+      var qrModel = qrModelFromJson(qrData);
+      var result = await HttpService.insertLog(
+        id: qrModel.id,
+        address: _address,
+        latlng: _latlng,
+        deviceId: _deviceId,
+        branchId: _branchId,
+      );
+      if (result.success) {
+        return LogReturn(result: LogResult.success, model: result);
+      } else if (result.message == "Invalid id") {
+        return LogReturn(result: LogResult.invalidId);
+      } else if (result.message == "User not in branch") {
+        return LogReturn(result: LogResult.userNotInBranch);
+      } else {
+        _errorList.add('insertLog ${result.message}');
+        return LogReturn(result: LogResult.unkownError);
       }
     } on FormatException catch (e) {
       debugPrint('$e');
-      AppDialogs.showMyToast('Invalid QR Code', context, error: true);
       _errorList.add('insertLog $e');
+      return LogReturn(result: LogResult.invalidQr);
     } on TimeoutException catch (e) {
       debugPrint('$e');
-      AppDialogs.showMyToast('Request Timeout', context, error: true);
       _errorList.add('insertLog $e');
+      return LogReturn(result: LogResult.requestTimeout);
     } on Exception catch (e) {
       debugPrint('$e');
-      AppDialogs.showMyToast('$e', context, error: true);
       _errorList.add('insertLog $e');
+      return LogReturn(result: LogResult.unkownError);
     } finally {
-      changeStateLoading();
+      changeStateLoading(false);
     }
   }
+}
+
+enum LogResult {
+  success,
+  invalidId,
+  userNotInBranch,
+  unkownError,
+  invalidQr,
+  requestTimeout,
+}
+
+class LogReturn {
+  final Enum result;
+  final LogModel? model;
+
+  LogReturn({required this.result, this.model});
 }

@@ -1,20 +1,18 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
 import 'package:intl/intl.dart';
-
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:provider/provider.dart';
 import 'package:wakelock/wakelock.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:flutter_styled_toast/flutter_styled_toast.dart';
 
 import '../app_color.dart';
 import '../data/qr_page_data.dart';
 import '../service/debouncer.dart';
 import '../widget/camera_border.dart';
 import '../model/log_model.dart';
-import '../widget/app_dialogs.dart';
+import '../widget/clock_widget.dart';
 
 class QrPage extends StatefulWidget {
   const QrPage({super.key});
@@ -24,8 +22,8 @@ class QrPage extends StatefulWidget {
 }
 
 class _QrPageState extends State<QrPage> {
-  final _currentTimeDisplay = ValueNotifier<String>('00:00:00');
   final _debouncer = Debouncer();
+  final _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -34,33 +32,178 @@ class _QrPageState extends State<QrPage> {
       var internetChecker =
           Provider.of<InternetConnectionChecker>(context, listen: false);
       var instance = Provider.of<QrPageData>(context, listen: false);
-      instance.doneInit();
       internetChecker.onStatusChange.listen((status) {
         instance.internetStatus(status);
-      });
-      Timer.periodic(const Duration(seconds: 1), (_) {
-        _currentTimeDisplay.value = DateFormat.jms().format(DateTime.now());
       });
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('build qr page');
+    Wakelock.enable();
     var instance = Provider.of<QrPageData>(context, listen: false);
     var camera = Provider.of<MobileScannerController>(context, listen: false);
 
-    Wakelock.enable();
+    Color colorLogType(String logType) {
+      switch (logType) {
+        case 'IN':
+          return Colors.green;
+        case 'OUT':
+          return Colors.red;
+        default:
+          return Colors.orange;
+      }
+    }
+
+    void showMyToast({
+      required String name,
+      required String logType,
+    }) {
+      showToastWidget(
+        Container(
+          height: 150.0,
+          width: 300.0,
+          padding: const EdgeInsets.all(5.0),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(5.0),
+            color: AppColor.kMainColor,
+          ),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  logType,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  style: TextStyle(
+                    fontSize: 30.0,
+                    color: colorLogType(logType),
+                    fontWeight: FontWeight.w600,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                Text(
+                  name,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  style: const TextStyle(
+                    fontSize: 24.0,
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        context: context,
+        animation: StyledToastAnimation.scale,
+        reverseAnimation: StyledToastAnimation.fade,
+        position: StyledToastPosition.center,
+        animDuration: const Duration(seconds: 1),
+        duration: const Duration(seconds: 3),
+        curve: Curves.elasticOut,
+        reverseCurve: Curves.linear,
+      );
+    }
+
+    void showMyToastError({required String errorMessage}) {
+      showToastWidget(
+        Container(
+          height: 150.0,
+          width: 300.0,
+          padding: const EdgeInsets.all(5.0),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(5.0),
+            color: AppColor.kMainColor,
+          ),
+          child: Center(
+            child: Text(
+              errorMessage,
+              textAlign: TextAlign.center,
+              maxLines: 4,
+              style: const TextStyle(
+                fontSize: 24.0,
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ),
+        ),
+        context: context,
+        animation: StyledToastAnimation.scale,
+        reverseAnimation: StyledToastAnimation.fade,
+        position: StyledToastPosition.center,
+        animDuration: const Duration(seconds: 1),
+        duration: const Duration(seconds: 3),
+        curve: Curves.elasticOut,
+        reverseCurve: Curves.linear,
+      );
+    }
+
+    void showAppVersionDialog({
+      required String title,
+      required String id,
+    }) {
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text(title),
+            content: SelectableText(id),
+            actions: <Widget>[
+              TextButton(
+                child: const Text('Ok'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+            ],
+          );
+        },
+      );
+    }
+
+    void showErrorLogsDialog({required List<String> list}) {
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('Error logs'),
+            content: ListView.builder(
+              itemCount: list.length,
+              itemBuilder: (ctx, i) {
+                return Text(list[i]);
+              },
+            ),
+            actions: <Widget>[
+              TextButton(
+                child: const Text('Ok'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+            ],
+          );
+        },
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: ValueListenableBuilder<bool>(
           valueListenable: instance.hasInternet,
           builder: (ctx, value, child) {
             if (value) {
-              return Row(
+              return const Row(
                 mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: const [
+                children: [
                   Text('Online'),
                   Icon(
                     Icons.signal_wifi_statusbar_4_bar,
@@ -69,10 +212,10 @@ class _QrPageState extends State<QrPage> {
                 ],
               );
             } else {
-              return Row(
+              return const Row(
                 mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: const [
+                children: [
                   Text('Offline'),
                   Icon(
                     Icons.signal_wifi_off,
@@ -88,8 +231,10 @@ class _QrPageState extends State<QrPage> {
             icon: const Icon(Icons.info),
             iconSize: 30.0,
             onPressed: () {
-              AppDialogs.showAppVersionDialog('Sirius ${instance.appVersion}',
-                  'Device id: ${instance.deviceId}', context);
+              showAppVersionDialog(
+                title: 'Sirius ${instance.appVersion}',
+                id: 'Device id: ${instance.deviceId}',
+              );
             },
           ),
           IconButton(
@@ -135,35 +280,71 @@ class _QrPageState extends State<QrPage> {
             },
             child: Center(
               child: MobileScanner(
-                // startDelay: true,
-                controller: camera,
                 fit: BoxFit.cover,
+                controller: camera,
                 onScannerStarted: (arguments) {
                   debugPrint('onScannerStarted');
                 },
                 onDetect: (capture) {
                   final List<Barcode> barcodes = capture.barcodes;
                   debugPrint('barcode ${barcodes.first.rawValue}');
-                  _debouncer(() {
-                    debugPrint('debounce');
-                    if (barcodes.first.rawValue != null &&
-                        instance.isDeviceAuthorized &&
-                        instance.hasInternet.value) {
-                      instance.insertLog(barcodes.first.rawValue!, context);
-                    } else if (instance.hasInternet.value &&
-                        !instance.isDeviceAuthorized) {
-                      AppDialogs.showMyToast('Device not Authorized', context,
-                          error: true);
+                  _debouncer.call(() async {
+                    if (!instance.hasInternet.value) {
+                      showMyToastError(errorMessage: 'No internet connection');
+                    } else if (!instance.isDeviceAuthorized) {
+                      showMyToastError(errorMessage: 'Device not Authorized');
                     } else {
-                      AppDialogs.showMyToast('No internet connection', context,
-                          error: true);
+                      var result = await instance.insertLog(
+                        qrData: barcodes.first.rawValue!,
+                        context: context,
+                      );
+                      switch (result.result) {
+                        case LogResult.success:
+                          if (result.result == LogResult.success) {
+                            showMyToast(
+                              name: result.model!.data.name!,
+                              logType: result.model!.data.logType!,
+                            );
+                            if (result.model!.data.logType != "ALREADY IN") {
+                              result.model!.data.timestamp =
+                                  DateFormat.jm().format(DateTime.now());
+                              instance.previousLogs.value = <Data>[
+                                ...instance.previousLogs.value,
+                                result.model!.data
+                              ];
+                              _scrollController.animateTo(
+                                _scrollController.position.minScrollExtent,
+                                duration: const Duration(seconds: 1),
+                                curve: Curves.bounceInOut,
+                              );
+                              if (instance.previousLogs.value.length > 20) {
+                                instance.previousLogs.value.removeAt(0);
+                              }
+                            }
+                          }
+                          break;
+                        case LogResult.invalidId:
+                          showMyToastError(errorMessage: 'Invalid ID');
+                          break;
+                        case LogResult.userNotInBranch:
+                          showMyToastError(errorMessage: 'User not in branch');
+                          break;
+                        case LogResult.invalidQr:
+                          showMyToastError(errorMessage: 'Invalid QR Code');
+                          break;
+                        case LogResult.requestTimeout:
+                          showMyToastError(errorMessage: 'Request Timeout');
+                          break;
+                        case LogResult.unkownError:
+                          showMyToastError(errorMessage: 'Unkown Error');
+                          break;
+                      }
                     }
                   });
                 },
                 errorBuilder: (ctx, exception, _) {
                   debugPrint('errorBuilder');
                   var errorCode = exception.errorCode.name;
-                  instance.addError("errorBuilder $errorCode");
                   camera.stop();
                   camera.start();
                   return SizedBox(
@@ -206,7 +387,7 @@ class _QrPageState extends State<QrPage> {
                 return SizedBox(
                   height: 75.0,
                   child: ListView.separated(
-                    controller: instance.scrollController,
+                    controller: _scrollController,
                     physics: const BouncingScrollPhysics(),
                     scrollDirection: Axis.horizontal,
                     itemCount: data.length,
@@ -229,18 +410,17 @@ class _QrPageState extends State<QrPage> {
                                   children: <TextSpan>[
                                     TextSpan(
                                       text:
-                                          "${data.reversed.toList()[i].logType} ",
+                                          '${data.reversed.toList()[i].logType} ',
                                       style: TextStyle(
                                         fontSize: 16.0,
-                                        color: AppDialogs.colorLogType(
-                                            "${data.reversed.toList()[i].logType}"),
+                                        color: colorLogType(
+                                            data.reversed.toList()[i].logType!),
                                         fontWeight: FontWeight.w600,
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
                                     TextSpan(
-                                      text:
-                                          "${data.reversed.toList()[i].timestamp}",
+                                      text: data.reversed.toList()[i].timestamp,
                                       style: const TextStyle(
                                         fontSize: 16.0,
                                         color: Colors.white,
@@ -252,7 +432,7 @@ class _QrPageState extends State<QrPage> {
                                 ),
                               ),
                               Text(
-                                "${data.reversed.toList()[i].name}",
+                                data.reversed.toList()[i].name!,
                                 textAlign: TextAlign.center,
                                 maxLines: 2,
                                 style: const TextStyle(
@@ -274,42 +454,23 @@ class _QrPageState extends State<QrPage> {
           ),
           Positioned(
             top: 30.0,
-            child: ValueListenableBuilder<String>(
-              valueListenable: _currentTimeDisplay,
-              builder: (ctx, value, _) {
-                return GestureDetector(
-                  onDoubleTap: () {
-                    AppDialogs.showErrorLogsDialog(instance.errorList, context);
-                  },
-                  child: Text(
-                    value,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 56.0,
-                      shadows: [
-                        Shadow(
-                          blurRadius: 10.0,
-                          color: Colors.black,
-                          offset: Offset(1.0, 1.0),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
+            child: GestureDetector(
+              onTap: () {
+                showErrorLogsDialog(list: instance.errorList);
               },
+              child: const ClockWidget(),
             ),
           ),
           ValueListenableBuilder<bool>(
             valueListenable: instance.isLogging,
-            builder: (ctx, value, _) {
+            builder: (context, value, child) {
               if (value) {
                 return const SpinKitFadingCircle(
                   color: Colors.white,
                   size: 150.0,
                 );
-              } else {
-                return const SizedBox();
               }
+              return const SizedBox();
             },
           ),
         ],
