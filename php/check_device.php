@@ -1,5 +1,5 @@
 <?php
-require 'db_connect.php';
+require '../db_connect.php';
 header('Content-Type: application/json; charset=utf-8');
 
 // make input json
@@ -7,7 +7,7 @@ $inputJSON = file_get_contents('php://input');
 $input = json_decode($inputJSON, TRUE);
 
 // last output
-$result = array('authorized'=>null);
+$result = array('authorized'=>null,'branch_id'=>null);
 
 // if not put device_id die
 if($_SERVER['REQUEST_METHOD'] == 'POST' && array_key_exists('device_id', $input)){
@@ -23,8 +23,10 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && array_key_exists('device_id', $input)
         $get_device->execute();
         $result_get_device = $get_device->fetch(PDO::FETCH_ASSOC);
         if($result_get_device){
+            $result['branch_id'] = $result_get_device['branch_id'];
             $result['authorized'] = true;
         }else{
+            $result['branch_id'] = '000';
             $result['authorized'] = false;
         }
         echo json_encode(array('success'=>true,'message'=>'Ok','data'=>$result));

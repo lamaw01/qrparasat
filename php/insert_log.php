@@ -1,5 +1,5 @@
 <?php
-require 'db_connect.php';
+require '../db_connect.php';
 header('Content-Type: application/json; charset=utf-8');
 
 // make input json
@@ -25,7 +25,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && array_key_exists('employee_id', $inpu
     $sql_last_log = 'SELECT tbl_employee.employee_id, tbl_employee.name, tbl_logs.log_type, tbl_logs.time_stamp
     FROM tbl_employee 
     LEFT JOIN tbl_logs ON tbl_employee.employee_id = tbl_logs.employee_id
-    WHERE tbl_logs.employee_id = :employee_id AND tbl_employee.active = 1 AND tbl_logs.is_selfie = 0
+    WHERE tbl_logs.employee_id = :employee_id AND tbl_employee.active = 1
     ORDER BY tbl_logs.time_stamp DESC LIMIT 1';
 
     // query check if employee has data
@@ -69,8 +69,8 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && array_key_exists('employee_id', $inpu
                 $log_type = $result_last_log['log_type'];
                 $time_stamp = $result_last_log['time_stamp'];
                 $time_difference = strtotime($current_time_stamp) - strtotime($time_stamp);
-                // if time difference not yet 15 secods, do not log. 14400 = 4 hours
-                if($time_difference <= 15 && $log_type == 'IN'){
+                // if time difference not yet 20 secods, do not log. 14400 = 4 hours
+                if($time_difference <= 20 && $log_type == 'IN'){
                     $result['log_type'] = $already_logged;
                 }else{
                     $insert_in_employee = $conn->prepare($sql_insert_log);
