@@ -22,7 +22,7 @@ void main() async {
         Provider<MobileScannerController>(
           create: (_) => MobileScannerController(
             detectionSpeed: DetectionSpeed.normal,
-            detectionTimeoutMs: 2500,
+            detectionTimeoutMs: 4000,
             facing: CameraFacing.front,
             formats: [BarcodeFormat.qrCode],
           ),

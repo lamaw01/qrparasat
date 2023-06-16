@@ -103,7 +103,7 @@ class _QrPageState extends State<QrPage> {
         reverseAnimation: StyledToastAnimation.fade,
         position: StyledToastPosition.center,
         animDuration: const Duration(seconds: 1),
-        duration: const Duration(seconds: 3),
+        duration: const Duration(milliseconds: 3500),
         curve: Curves.elasticOut,
         reverseCurve: Curves.linear,
       );
@@ -138,7 +138,7 @@ class _QrPageState extends State<QrPage> {
         reverseAnimation: StyledToastAnimation.fade,
         position: StyledToastPosition.center,
         animDuration: const Duration(seconds: 1),
-        duration: const Duration(seconds: 3),
+        duration: const Duration(milliseconds: 3500),
         curve: Curves.elasticOut,
         reverseCurve: Curves.linear,
       );
