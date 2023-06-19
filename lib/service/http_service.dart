@@ -27,7 +27,7 @@ class HttpService {
               "device_id": deviceId,
               "branch_id": branchId
             }))
-        .timeout(const Duration(seconds: 5));
+        .timeout(const Duration(seconds: 15));
     debugPrint('insertLog ${response.body}');
     return logModelFromJson(response.body);
   }
@@ -41,7 +41,7 @@ class HttpService {
               'Content-Type': 'application/json; charset=UTF-8',
             },
             body: json.encode(<String, dynamic>{"device_id": deviceId}))
-        .timeout(const Duration(seconds: 5));
+        .timeout(const Duration(seconds: 10));
     debugPrint('checkDeviceAuthorized ${response.body}');
     return deviceModelFromJson(response.body);
   }
@@ -67,7 +67,7 @@ class HttpService {
               "version": version,
               "app_name": 'Sirius'
             }))
-        .timeout(const Duration(seconds: 5));
+        .timeout(const Duration(seconds: 10));
     debugPrint('insertDeviceLog ${response.body}');
   }
 }
