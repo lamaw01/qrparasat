@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
@@ -7,6 +8,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
 import 'package:intl/intl.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../model/log_model.dart';
 import '../model/qr_model.dart';
@@ -27,6 +29,7 @@ class QrPageData with ChangeNotifier {
   var _branchId = "";
   var _hasCheckDeviceAuthorized = false;
   var _hasSendDeviceLog = false;
+  var _sixDigitCode = 000000;
 
   var _appVersion = "";
   String get appVersion => _appVersion;
@@ -72,6 +75,7 @@ class QrPageData with ChangeNotifier {
   Future<void> init() async {
     await getPackageInfo();
     await getDeviceInfo();
+    await checkCode();
     await getPosition();
     await translateLatLng();
     await checkDeviceAuthorized();
@@ -118,6 +122,39 @@ class QrPageData with ChangeNotifier {
         _appVersion = result.version;
         debugPrint(_appVersion);
       });
+    } catch (e) {
+      debugPrint('$e');
+      _errorList.add('initDeviceInfo $e');
+    }
+  }
+
+  // generate 6 digit code and store in sharedpref
+  Future<void> generateCode() async {
+    try {
+      var random = Random();
+      var generatedCode = random.nextInt(900000) + 100000;
+      _sixDigitCode = generatedCode;
+      debugPrint("$_sixDigitCode");
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('code', _sixDigitCode);
+      _deviceId = "$_deviceId:$_sixDigitCode";
+    } catch (e) {
+      debugPrint('$e');
+      _errorList.add('initDeviceInfo $e');
+    }
+  }
+
+  // check if device has generate code
+  Future<void> checkCode() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final int? code = prefs.getInt('code');
+      if (code != null) {
+        _sixDigitCode = code;
+        _deviceId = "$_deviceId:$_sixDigitCode";
+      } else {
+        generateCode();
+      }
     } catch (e) {
       debugPrint('$e');
       _errorList.add('initDeviceInfo $e');
