@@ -17,7 +17,13 @@ class _LoadingPageState extends State<LoadingPage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await context.read<QrPageData>().checkLocationService(context);
+      await context.read<QrPageData>().checkVersion();
+      if (context.mounted) {
+        await context.read<QrPageData>().showVersionAppDialog(context);
+      }
+      if (context.mounted) {
+        await context.read<QrPageData>().checkLocationService(context);
+      }
       if (context.mounted) {
         await context.read<QrPageData>().init().then((_) {
           Navigator.pushReplacement(

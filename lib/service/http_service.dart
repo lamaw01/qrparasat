@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../model/log_model.dart';
 import '../model/device_model.dart';
+import '../model/sirius_version_model.dart';
 
 class HttpService {
   static const String _serverUrl = 'http://uc-1.dnsalias.net:55083/dtr_api';
@@ -69,5 +70,17 @@ class HttpService {
             }))
         .timeout(const Duration(seconds: 10));
     debugPrint('insertDeviceLog ${response.body}');
+  }
+
+  static Future<SiriusVersionModel> getAppVersion() async {
+    var response = await http.get(
+      Uri.parse('$_serverUrl/get_app_version.php'),
+      headers: <String, String>{
+        'Accept': '*/*',
+        'Content-Type': 'application/json; charset=UTF-8',
+      },
+    ).timeout(const Duration(seconds: 10));
+    debugPrint('getAppVersion ${response.body}');
+    return siriusVersionModelFromJson(response.body);
   }
 }

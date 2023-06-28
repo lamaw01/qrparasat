@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
@@ -37,8 +38,14 @@ class QrPageData with ChangeNotifier {
   var _deviceId = "";
   String get deviceId => _deviceId;
 
+  var _appVersionDatabase = "";
+  String get appVersionDatabase => _appVersionDatabase;
+
   var _isDeviceAuthorized = false;
   bool get isDeviceAuthorized => _isDeviceAuthorized;
+
+  var _hasVerifiedVersion = false;
+  bool get hasVerifiedVersion => _hasVerifiedVersion;
 
   final _previousLogs = ValueNotifier(<Data>[]);
   ValueNotifier<List<Data>> get previousLogs => _previousLogs;
@@ -56,7 +63,10 @@ class QrPageData with ChangeNotifier {
   }
 
   // listens to internet status
-  void internetStatus(InternetConnectionStatus status) async {
+  void internetStatus({
+    required InternetConnectionStatus status,
+    required BuildContext context,
+  }) async {
     if (status == InternetConnectionStatus.connected) {
       _hasInternet.value = true;
     } else {
@@ -68,18 +78,28 @@ class QrPageData with ChangeNotifier {
     if (!_hasSendDeviceLog) {
       await insertDeviceLog();
     }
+    // check if gotten an app version in database
+    if (!_hasVerifiedVersion) {
+      await getAppVersion().then((_) {
+        showVersionAppDialog(context);
+      });
+    }
     debugPrint("hasInternet ${_hasInternet.value}");
   }
 
   // initialize all functions
   Future<void> init() async {
-    await getPackageInfo();
     await getDeviceInfo();
     await checkCode();
     await getPosition();
     await translateLatLng();
     await checkDeviceAuthorized();
     await insertDeviceLog();
+  }
+
+  Future<void> checkVersion() async {
+    await getPackageInfo();
+    await getAppVersion();
   }
 
   // check location service
@@ -115,6 +135,37 @@ class QrPageData with ChangeNotifier {
     });
   }
 
+  Future<void> showVersionAppDialog(BuildContext context) async {
+    var intAppVersion = _appVersion.replaceAll(".", "").trim();
+    var intAppVersionDatabase = _appVersionDatabase.replaceAll(".", "").trim();
+    try {
+      if (int.parse(intAppVersion) < int.parse(intAppVersionDatabase)) {
+        await showDialog<void>(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('App Out of date'),
+              content: Text(
+                  'Current version $_appVersion is out of date. Please update to version $_appVersionDatabase.'),
+              actions: <Widget>[
+                TextButton(
+                  child: const Text('Exit'),
+                  onPressed: () {
+                    SystemNavigator.pop();
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      }
+    } catch (e) {
+      debugPrint('showVersionAppDialog $e');
+      _errorList.add('showVersionAppDialog $e');
+    }
+  }
+
   // get device version
   Future<void> getPackageInfo() async {
     try {
@@ -125,6 +176,19 @@ class QrPageData with ChangeNotifier {
     } catch (e) {
       debugPrint('$e');
       _errorList.add('initDeviceInfo $e');
+    }
+  }
+
+  // get app version in database
+  Future<void> getAppVersion() async {
+    try {
+      await HttpService.getAppVersion().then((result) {
+        _appVersionDatabase = result.siriusVersion;
+        _hasVerifiedVersion = true;
+      });
+    } catch (e) {
+      debugPrint('getAppVersion $e');
+      _errorList.add('getAppVersion $e');
     }
   }
 

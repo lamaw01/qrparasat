@@ -33,7 +33,7 @@ class _QrPageState extends State<QrPage> {
           Provider.of<InternetConnectionChecker>(context, listen: false);
       var instance = Provider.of<QrPageData>(context, listen: false);
       internetChecker.onStatusChange.listen((status) {
-        instance.internetStatus(status);
+        instance.internetStatus(status: status, context: context);
       });
     });
   }
