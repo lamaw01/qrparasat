@@ -73,6 +73,8 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && array_key_exists('employee_id', $inpu
                 if($time_difference <= 20 && $log_type == 'IN'){
                     $result['log_type'] = $already_logged;
                 }else{
+                    $set=$conn->prepare("SET SQL_MODE=''");
+                    $set->execute();
                     $insert_in_employee = $conn->prepare($sql_insert_log);
                     $insert_in_employee->bindParam(':employee_id', $employee_id, PDO::PARAM_STR);
                     // in or out
@@ -93,6 +95,8 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && array_key_exists('employee_id', $inpu
             }
             // insert new log if user has no logs yet
             else{
+                $set=$conn->prepare("SET SQL_MODE=''");
+                $set->execute();
                 $insert_in_employee = $conn->prepare($sql_insert_log);
                 $insert_in_employee->bindParam(':employee_id', $employee_id, PDO::PARAM_STR);
                 $insert_in_employee->bindParam(':log_type', $log_in, PDO::PARAM_STR);

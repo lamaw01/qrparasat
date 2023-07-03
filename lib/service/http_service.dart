@@ -6,7 +6,7 @@ import '../model/device_model.dart';
 import '../model/sirius_version_model.dart';
 
 class HttpService {
-  static const String _serverUrl = 'http://uc-1.dnsalias.net:55083/dtr_api';
+  static const String _serverUrl = 'http://103.62.153.74:53000/dtr_api';
 
   static Future<LogModel> insertLog({
     required String id,
