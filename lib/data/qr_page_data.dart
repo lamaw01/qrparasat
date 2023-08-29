@@ -88,13 +88,16 @@ class QrPageData with ChangeNotifier {
   }
 
   // initialize all functions
-  Future<void> init() async {
+  Future<String> init() async {
     await getDeviceInfo();
     await checkCode();
     await getPosition();
     await translateLatLng();
-    await checkDeviceAuthorized();
-    await insertDeviceLog();
+    if (_address != '') {
+      await checkDeviceAuthorized();
+      await insertDeviceLog();
+    }
+    return _address;
   }
 
   Future<void> checkVersion() async {

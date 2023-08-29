@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../app_color.dart';
 import '../data/qr_page_data.dart';
+import 'no_address_page.dart';
 import 'qr_page.dart';
 
 class LoadingPage extends StatefulWidget {
@@ -25,13 +26,22 @@ class _LoadingPageState extends State<LoadingPage> {
         await context.read<QrPageData>().checkLocationService(context);
       }
       if (context.mounted) {
-        await context.read<QrPageData>().init().then((_) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (BuildContext context) => const QrPage(),
-            ),
-          );
+        await context.read<QrPageData>().init().then((result) {
+          if (result != '') {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (BuildContext context) => const QrPage(),
+              ),
+            );
+          } else {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (BuildContext context) => const NoAddressPage(),
+              ),
+            );
+          }
         });
       }
     });
