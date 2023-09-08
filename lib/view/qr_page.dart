@@ -175,11 +175,15 @@ class _QrPageState extends State<QrPage> {
         builder: (BuildContext context) {
           return AlertDialog(
             title: const Text('Error logs'),
-            content: ListView.builder(
-              itemCount: list.length,
-              itemBuilder: (ctx, i) {
-                return Text(list[i]);
-              },
+            content: SizedBox(
+              height: MediaQuery.of(context).size.height * 0.60,
+              width: MediaQuery.of(context).size.width * 0.80,
+              child: ListView.builder(
+                itemCount: list.length,
+                itemBuilder: (ctx, i) {
+                  return Text(list[i]);
+                },
+              ),
             ),
             actions: <Widget>[
               TextButton(
