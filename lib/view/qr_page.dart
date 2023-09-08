@@ -171,7 +171,7 @@ class _QrPageState extends State<QrPage> {
     void showErrorLogsDialog({required List<String> list}) {
       showDialog<void>(
         context: context,
-        barrierDismissible: false,
+        barrierDismissible: true,
         builder: (BuildContext context) {
           return AlertDialog(
             title: const Text('Error logs'),
