@@ -10,6 +10,7 @@ import 'package:internet_connection_checker/internet_connection_checker.dart';
 import 'package:intl/intl.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../model/log_model.dart';
 import '../model/qr_model.dart';
@@ -152,6 +153,14 @@ class QrPageData with ChangeNotifier {
               content: Text(
                   'Current version $_appVersion is out of date. Please update to version $_appVersionDatabase.'),
               actions: <Widget>[
+                TextButton(
+                  child: const Text('Download new version'),
+                  onPressed: () {
+                    launchUrl(
+                      Uri.parse(HttpService.appDownloadLink),
+                    );
+                  },
+                ),
                 TextButton(
                   child: const Text('Exit'),
                   onPressed: () {

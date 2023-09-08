@@ -6,7 +6,9 @@ import '../model/device_model.dart';
 import '../model/sirius_version_model.dart';
 
 class HttpService {
-  static const String _serverUrl = 'http://103.62.153.74:53000/dtr_api';
+  static const String serverUrl = 'http://103.62.153.74:53000/dtr_api';
+  static const String appDownloadLink =
+      'http://103.62.153.74:53000/download/sirius.apk';
 
   static Future<LogModel> insertLog({
     required String id,
@@ -16,7 +18,7 @@ class HttpService {
     required String branchId,
   }) async {
     var response = await http
-        .post(Uri.parse('$_serverUrl/insert_log.php'),
+        .post(Uri.parse('$serverUrl/insert_log.php'),
             headers: <String, String>{
               'Accept': '*/*',
               'Content-Type': 'application/json; charset=UTF-8',
@@ -36,7 +38,7 @@ class HttpService {
   static Future<DeviceModel> checkDeviceAuthorized(
       {required String deviceId}) async {
     var response = await http
-        .post(Uri.parse('$_serverUrl/check_device.php'),
+        .post(Uri.parse('$serverUrl/check_device.php'),
             headers: <String, String>{
               'Accept': '*/*',
               'Content-Type': 'application/json; charset=UTF-8',
@@ -55,7 +57,7 @@ class HttpService {
     required String version,
   }) async {
     var response = await http
-        .post(Uri.parse('$_serverUrl/insert_device_log.php'),
+        .post(Uri.parse('$serverUrl/insert_device_log.php'),
             headers: <String, String>{
               'Accept': '*/*',
               'Content-Type': 'application/json; charset=UTF-8',
@@ -74,7 +76,7 @@ class HttpService {
 
   static Future<SiriusVersionModel> getAppVersion() async {
     var response = await http.get(
-      Uri.parse('$_serverUrl/get_app_version.php'),
+      Uri.parse('$serverUrl/get_app_version.php'),
       headers: <String, String>{
         'Accept': '*/*',
         'Content-Type': 'application/json; charset=UTF-8',

@@ -16,13 +16,11 @@ class NoAddressPage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             const SizedBox(
-              // color: Colors.teal,
               width: 300.0,
               height: 200.0,
               child: Center(
                 child: Text(
                   'No address retrieve. Please enable location service, close the app and try again.',
-                  // maxLines: 2,
                   style: TextStyle(
                     fontSize: 24.0,
                   ),
