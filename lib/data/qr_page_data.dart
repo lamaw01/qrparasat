@@ -195,7 +195,7 @@ class QrPageData with ChangeNotifier {
   Future<void> getAppVersion() async {
     try {
       await HttpService.getAppVersion().then((result) {
-        _appVersionDatabase = result.siriusVersion;
+        _appVersionDatabase = result.version;
         _hasVerifiedVersion = true;
       });
     } catch (e) {
@@ -329,6 +329,8 @@ class QrPageData with ChangeNotifier {
         latlng: _latlng,
         deviceId: _deviceId,
         branchId: _branchId,
+        app: 'sirius',
+        version: _appVersion,
       );
       if (result.success) {
         return LogReturn(result: LogResult.success, model: result);

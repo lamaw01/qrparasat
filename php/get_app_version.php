@@ -10,7 +10,7 @@ $input = json_decode($inputJSON, TRUE);
 if($_SERVER['REQUEST_METHOD'] == 'GET'){
 
     // query check if device is authorized
-    $sql_get_app_version = 'SELECT sirius_version, sirius_updated FROM tbl_app_version
+    $sql_get_app_version = 'SELECT * FROM tbl_app_version
     WHERE id = 1';
 
     try {

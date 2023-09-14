@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../model/log_model.dart';
 import '../model/device_model.dart';
-import '../model/sirius_version_model.dart';
+import '../model/version_model.dart';
 
 class HttpService {
   static const String serverUrl = 'http://103.62.153.74:53000/dtr_api';
@@ -16,6 +16,8 @@ class HttpService {
     required String latlng,
     required String deviceId,
     required String branchId,
+    required String app,
+    required String version,
   }) async {
     var response = await http
         .post(Uri.parse('$serverUrl/insert_log.php'),
@@ -28,7 +30,9 @@ class HttpService {
               "address": address,
               "latlng": latlng,
               "device_id": deviceId,
-              "branch_id": branchId
+              "branch_id": branchId,
+              "app": app,
+              "version": version
             }))
         .timeout(const Duration(seconds: 15));
     debugPrint('insertLog ${response.body}');
@@ -68,13 +72,13 @@ class HttpService {
               "address": address,
               "latlng": latlng,
               "version": version,
-              "app_name": 'Sirius'
+              "app_name": 'sirius'
             }))
         .timeout(const Duration(seconds: 10));
     debugPrint('insertDeviceLog ${response.body}');
   }
 
-  static Future<SiriusVersionModel> getAppVersion() async {
+  static Future<VersionModel> getAppVersion() async {
     var response = await http.get(
       Uri.parse('$serverUrl/get_app_version.php'),
       headers: <String, String>{
@@ -83,6 +87,6 @@ class HttpService {
       },
     ).timeout(const Duration(seconds: 10));
     debugPrint('getAppVersion ${response.body}');
-    return siriusVersionModelFromJson(response.body);
+    return versionModelFromJson(response.body);
   }
 }
