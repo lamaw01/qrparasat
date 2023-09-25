@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:wakelock/wakelock.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:flutter_styled_toast/flutter_styled_toast.dart';
+import 'dart:async';
 
 import '../app_color.dart';
 import '../data/qr_page_data.dart';
@@ -34,6 +35,12 @@ class _QrPageState extends State<QrPage> {
       var instance = Provider.of<QrPageData>(context, listen: false);
       internetChecker.onStatusChange.listen((status) {
         instance.internetStatus(status: status, context: context);
+      });
+      Timer.periodic(const Duration(minutes: 30), (timer) async {
+        // log('call database version ${timer.tick}');
+        await instance.getAppVersion().then((_) {
+          instance.showVersionAppDialog(context);
+        });
       });
     });
   }

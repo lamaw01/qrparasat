@@ -8,7 +8,9 @@ import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
 import 'package:intl/intl.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -144,6 +146,7 @@ class QrPageData with ChangeNotifier {
     var intAppVersionDatabase = _appVersionDatabase.replaceAll(".", "").trim();
     try {
       if (int.parse(intAppVersion) < int.parse(intAppVersionDatabase)) {
+        Provider.of<MobileScannerController>(context, listen: false).dispose();
         await showDialog<void>(
           context: context,
           barrierDismissible: false,
@@ -156,9 +159,8 @@ class QrPageData with ChangeNotifier {
                 TextButton(
                   child: const Text('Download new version'),
                   onPressed: () {
-                    launchUrl(
-                      Uri.parse(HttpService.appDownloadLink),
-                    );
+                    launchUrl(Uri.parse(HttpService.appDownloadLink),
+                        mode: LaunchMode.externalApplication);
                   },
                 ),
                 TextButton(
