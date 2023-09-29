@@ -11,9 +11,11 @@ import 'dart:async';
 import '../app_color.dart';
 import '../data/qr_page_data.dart';
 import '../service/debouncer.dart';
-import '../widget/camera_border.dart';
+import '../widget/camera_border_widget.dart';
 import '../model/log_model.dart';
+import '../widget/camera_error_widget.dart';
 import '../widget/clock_widget.dart';
+import 'test_page.dart';
 
 class QrPage extends StatefulWidget {
   const QrPage({super.key});
@@ -239,12 +241,28 @@ class _QrPageState extends State<QrPage> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.info),
+            icon: const Icon(Icons.live_help_outlined),
+            iconSize: 30.0,
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (BuildContext context) => const TestPage(),
+                ),
+              ).then((_) async {
+                await Future.delayed(const Duration(seconds: 2));
+                await camera.stop();
+                await camera.start();
+              });
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.info_outline),
             iconSize: 30.0,
             onPressed: () {
               showAppVersionDialog(
                 title: 'Sirius ${instance.appVersion}',
-                id: 'Device id: ${instance.deviceId}',
+                id: 'Device ID: ${instance.deviceId}',
               );
             },
           ),
@@ -354,25 +372,12 @@ class _QrPageState extends State<QrPage> {
                   });
                 },
                 errorBuilder: (ctx, exception, _) {
-                  debugPrint('errorBuilder');
-                  var errorCode = exception.errorCode.name;
+                  debugPrint('errorBuilder 1');
+                  String errorCode = exception.errorCode.name;
                   camera.stop();
                   camera.start();
-                  return SizedBox(
-                    height: 150.0,
-                    width: 150.0,
-                    child: Center(
-                      child: Text(
-                        'Error opening camera $errorCode',
-                        textAlign: TextAlign.center,
-                        maxLines: 3,
-                        style: const TextStyle(
-                          fontSize: 16.0,
-                          fontWeight: FontWeight.w500,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ),
+                  return ErrorCameraWidget(
+                    error: errorCode,
                   );
                 },
                 placeholderBuilder: (ctx, widget) {
@@ -382,10 +387,10 @@ class _QrPageState extends State<QrPage> {
             ),
           ),
           SizedBox(
-            height: 200.0,
-            width: 200.0,
+            height: 225.0,
+            width: 225.0,
             child: CustomPaint(
-              foregroundPainter: CameraBorder(),
+              foregroundPainter: CameraBorderWidget(),
             ),
           ),
           Positioned(

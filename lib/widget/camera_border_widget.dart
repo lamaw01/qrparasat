@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-class CameraBorder extends CustomPainter {
+class CameraBorderWidget extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     double sh = size.height; // for convenient shortage
@@ -8,8 +8,8 @@ class CameraBorder extends CustomPainter {
     double cornerSide = sh * 0.15; // desirable value for corners side
 
     Paint paint = Paint()
-      ..color = Colors.red
-      ..strokeWidth = 2.0
+      ..color = Colors.orange
+      ..strokeWidth = 3.0
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
 
@@ -27,10 +27,10 @@ class CameraBorder extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(CameraBorder oldDelegate) => false;
+  bool shouldRepaint(CameraBorderWidget oldDelegate) => false;
 
   @override
-  bool shouldRebuildSemantics(CameraBorder oldDelegate) => false;
+  bool shouldRebuildSemantics(CameraBorderWidget oldDelegate) => false;
 }
 
 //Paint see Rect layout
