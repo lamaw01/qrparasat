@@ -10,12 +10,12 @@ import 'dart:async';
 
 import '../app_color.dart';
 import '../data/qr_page_data.dart';
+import '../model/qr_model.dart';
 import '../service/debouncer.dart';
 import '../widget/camera_border_widget.dart';
 import '../model/log_model.dart';
 import '../widget/camera_error_widget.dart';
 import '../widget/clock_widget.dart';
-import 'test_page.dart';
 
 class QrPage extends StatefulWidget {
   const QrPage({super.key});
@@ -25,8 +25,8 @@ class QrPage extends StatefulWidget {
 }
 
 class _QrPageState extends State<QrPage> {
-  final _debouncer = Debouncer();
-  final _scrollController = ScrollController();
+  final debouncer = Debouncer();
+  final scrollController = ScrollController();
 
   @override
   void initState() {
@@ -39,7 +39,6 @@ class _QrPageState extends State<QrPage> {
         instance.internetStatus(status: status, context: context);
       });
       Timer.periodic(const Duration(minutes: 30), (timer) async {
-        // log('call database version ${timer.tick}');
         await instance.getAppVersion().then((_) {
           instance.showVersionAppDialog(context);
         });
@@ -47,165 +46,224 @@ class _QrPageState extends State<QrPage> {
     });
   }
 
+  Color colorLogType(String logType) {
+    switch (logType) {
+      case 'IN':
+        return Colors.green;
+      case 'OUT':
+        return Colors.red;
+      default:
+        return Colors.orange;
+    }
+  }
+
+  void showMyToast({
+    required String name,
+    required String logType,
+  }) {
+    showToastWidget(
+      Container(
+        height: 150.0,
+        width: 300.0,
+        padding: const EdgeInsets.all(5.0),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(5.0),
+          color: AppColor.kMainColor,
+        ),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                logType,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                style: TextStyle(
+                  fontSize: 30.0,
+                  color: colorLogType(logType),
+                  fontWeight: FontWeight.w600,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              Text(
+                name,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                style: const TextStyle(
+                  fontSize: 24.0,
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      context: context,
+      animation: StyledToastAnimation.scale,
+      reverseAnimation: StyledToastAnimation.fade,
+      position: StyledToastPosition.center,
+      animDuration: const Duration(seconds: 1),
+      duration: const Duration(milliseconds: 3500),
+      curve: Curves.elasticOut,
+      reverseCurve: Curves.linear,
+    );
+  }
+
+  void showMyToastError({required String errorMessage}) {
+    showToastWidget(
+      Container(
+        height: 150.0,
+        width: 300.0,
+        padding: const EdgeInsets.all(5.0),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(5.0),
+          color: AppColor.kMainColor,
+        ),
+        child: Center(
+          child: Text(
+            errorMessage,
+            textAlign: TextAlign.center,
+            maxLines: 4,
+            style: const TextStyle(
+              fontSize: 24.0,
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ),
+      ),
+      context: context,
+      animation: StyledToastAnimation.scale,
+      reverseAnimation: StyledToastAnimation.fade,
+      position: StyledToastPosition.center,
+      animDuration: const Duration(seconds: 1),
+      duration: const Duration(milliseconds: 3500),
+      curve: Curves.elasticOut,
+      reverseCurve: Curves.linear,
+    );
+  }
+
+  void showAppVersionDialog({
+    required String title,
+    required String id,
+  }) {
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(title),
+          content: SelectableText(id),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Ok'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void showErrorLogsDialog({required List<String> list}) {
+    showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Error logs'),
+          content: SizedBox(
+            height: MediaQuery.of(context).size.height * 0.50,
+            width: MediaQuery.of(context).size.width * 0.80,
+            child: ListView.builder(
+              itemCount: list.length,
+              itemBuilder: (ctx, i) {
+                return Text(list[i]);
+              },
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Ok'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> showScannedQr(String? qrData) async {
+    QrModel? qrModel;
+    try {
+      qrModel = qrModelFromJson(qrData!);
+    } catch (e) {
+      debugPrint('$e showQrTestScan');
+    }
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          actionsPadding: EdgeInsets.zero,
+          titlePadding: EdgeInsets.zero,
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (qrModel != null) ...[
+                Text(
+                  'Name: ${qrModel.name}',
+                  maxLines: 2,
+                  style: const TextStyle(fontSize: 18.0),
+                ),
+                const SizedBox(width: 5.0),
+                Text(
+                  'ID#: ${qrModel.id}',
+                  maxLines: 1,
+                  style: const TextStyle(fontSize: 18.0),
+                ),
+              ] else ...[
+                Text(
+                  'Unkown QR: ${qrData!}',
+                  maxLines: 4,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 18.0,
+                  ),
+                ),
+              ]
+            ],
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text(
+                'Ok',
+                style: TextStyle(fontSize: 20.0),
+              ),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     Wakelock.enable();
     var instance = Provider.of<QrPageData>(context, listen: false);
     var camera = Provider.of<MobileScannerController>(context, listen: false);
-
-    Color colorLogType(String logType) {
-      switch (logType) {
-        case 'IN':
-          return Colors.green;
-        case 'OUT':
-          return Colors.red;
-        default:
-          return Colors.orange;
-      }
-    }
-
-    void showMyToast({
-      required String name,
-      required String logType,
-    }) {
-      showToastWidget(
-        Container(
-          height: 150.0,
-          width: 300.0,
-          padding: const EdgeInsets.all(5.0),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(5.0),
-            color: AppColor.kMainColor,
-          ),
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  logType,
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  style: TextStyle(
-                    fontSize: 30.0,
-                    color: colorLogType(logType),
-                    fontWeight: FontWeight.w600,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                Text(
-                  name,
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  style: const TextStyle(
-                    fontSize: 24.0,
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        context: context,
-        animation: StyledToastAnimation.scale,
-        reverseAnimation: StyledToastAnimation.fade,
-        position: StyledToastPosition.center,
-        animDuration: const Duration(seconds: 1),
-        duration: const Duration(milliseconds: 3500),
-        curve: Curves.elasticOut,
-        reverseCurve: Curves.linear,
-      );
-    }
-
-    void showMyToastError({required String errorMessage}) {
-      showToastWidget(
-        Container(
-          height: 150.0,
-          width: 300.0,
-          padding: const EdgeInsets.all(5.0),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(5.0),
-            color: AppColor.kMainColor,
-          ),
-          child: Center(
-            child: Text(
-              errorMessage,
-              textAlign: TextAlign.center,
-              maxLines: 4,
-              style: const TextStyle(
-                fontSize: 24.0,
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ),
-        ),
-        context: context,
-        animation: StyledToastAnimation.scale,
-        reverseAnimation: StyledToastAnimation.fade,
-        position: StyledToastPosition.center,
-        animDuration: const Duration(seconds: 1),
-        duration: const Duration(milliseconds: 3500),
-        curve: Curves.elasticOut,
-        reverseCurve: Curves.linear,
-      );
-    }
-
-    void showAppVersionDialog({
-      required String title,
-      required String id,
-    }) {
-      showDialog<void>(
-        context: context,
-        barrierDismissible: false,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: Text(title),
-            content: SelectableText(id),
-            actions: <Widget>[
-              TextButton(
-                child: const Text('Ok'),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-              ),
-            ],
-          );
-        },
-      );
-    }
-
-    void showErrorLogsDialog({required List<String> list}) {
-      showDialog<void>(
-        context: context,
-        barrierDismissible: true,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: const Text('Error logs'),
-            content: SizedBox(
-              height: MediaQuery.of(context).size.height * 0.60,
-              width: MediaQuery.of(context).size.width * 0.80,
-              child: ListView.builder(
-                itemCount: list.length,
-                itemBuilder: (ctx, i) {
-                  return Text(list[i]);
-                },
-              ),
-            ),
-            actions: <Widget>[
-              TextButton(
-                child: const Text('Ok'),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-              ),
-            ],
-          );
-        },
-      );
-    }
 
     return Scaffold(
       appBar: AppBar(
@@ -241,19 +299,19 @@ class _QrPageState extends State<QrPage> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.live_help_outlined),
+            icon: ValueListenableBuilder<bool>(
+              valueListenable: instance.scanMode,
+              builder: (context, state, child) {
+                if (state) {
+                  return const Icon(Icons.photo_camera_outlined);
+                } else {
+                  return const Icon(Icons.live_help_outlined);
+                }
+              },
+            ),
             iconSize: 30.0,
             onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (BuildContext context) => const TestPage(),
-                ),
-              ).then((_) async {
-                await Future.delayed(const Duration(seconds: 2));
-                await camera.stop();
-                await camera.start();
-              });
+              instance.scanModeState();
             },
           ),
           IconButton(
@@ -317,11 +375,13 @@ class _QrPageState extends State<QrPage> {
                 onDetect: (capture) {
                   final List<Barcode> barcodes = capture.barcodes;
                   debugPrint('barcode ${barcodes.first.rawValue}');
-                  _debouncer.call(() async {
+                  debouncer.call(() async {
                     if (!instance.hasInternet.value) {
                       showMyToastError(errorMessage: 'No internet connection');
                     } else if (!instance.isDeviceAuthorized) {
                       showMyToastError(errorMessage: 'Device not Authorized');
+                    } else if (instance.scanMode.value) {
+                      await showScannedQr(barcodes.first.rawValue);
                     } else {
                       var result = await instance.insertLog(
                         qrData: barcodes.first.rawValue!,
@@ -341,8 +401,8 @@ class _QrPageState extends State<QrPage> {
                                 ...instance.previousLogs.value,
                                 result.model!.data
                               ];
-                              _scrollController.animateTo(
-                                _scrollController.position.minScrollExtent,
+                              scrollController.animateTo(
+                                scrollController.position.minScrollExtent,
                                 duration: const Duration(seconds: 1),
                                 curve: Curves.bounceInOut,
                               );
@@ -403,7 +463,7 @@ class _QrPageState extends State<QrPage> {
                 return SizedBox(
                   height: 75.0,
                   child: ListView.separated(
-                    controller: _scrollController,
+                    controller: scrollController,
                     physics: const BouncingScrollPhysics(),
                     scrollDirection: Axis.horizontal,
                     itemCount: data.length,
@@ -470,11 +530,39 @@ class _QrPageState extends State<QrPage> {
           ),
           Positioned(
             top: 30.0,
-            child: GestureDetector(
-              onTap: () {
-                showErrorLogsDialog(list: instance.errorList);
+            child: ValueListenableBuilder<bool>(
+              valueListenable: instance.scanMode,
+              builder: (context, state, child) {
+                if (state) {
+                  return GestureDetector(
+                    onTap: () {
+                      showErrorLogsDialog(list: instance.errorList);
+                    },
+                    child: const Text(
+                      'Scan Mode\nTest your QR',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 50.0,
+                        shadows: [
+                          Shadow(
+                            blurRadius: 10.0,
+                            color: Colors.black,
+                            offset: Offset(1.0, 1.0),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                } else {
+                  return GestureDetector(
+                    onTap: () {
+                      showErrorLogsDialog(list: instance.errorList);
+                    },
+                    child: const ClockWidget(),
+                  );
+                }
               },
-              child: const ClockWidget(),
             ),
           ),
           ValueListenableBuilder<bool>(

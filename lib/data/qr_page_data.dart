@@ -61,8 +61,15 @@ class QrPageData with ChangeNotifier {
 
   final _dateFormat = DateFormat('yyyy-MM-dd HH:mm:ss');
 
+  final _scanMode = ValueNotifier(false);
+  ValueNotifier<bool> get scanMode => _scanMode;
+
   void changeStateLoading(bool state) {
     _isLogging.value = state;
+  }
+
+  void scanModeState() {
+    _scanMode.value = !_scanMode.value;
   }
 
   // listens to internet status
