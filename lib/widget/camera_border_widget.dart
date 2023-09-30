@@ -8,7 +8,7 @@ class CameraBorderWidget extends CustomPainter {
     double cornerSide = sh * 0.15; // desirable value for corners side
 
     Paint paint = Paint()
-      ..color = Colors.orange
+      ..color = Colors.red
       ..strokeWidth = 3.0
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;

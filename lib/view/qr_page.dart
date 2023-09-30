@@ -264,6 +264,7 @@ class _QrPageState extends State<QrPage> {
     Wakelock.enable();
     var instance = Provider.of<QrPageData>(context, listen: false);
     var camera = Provider.of<MobileScannerController>(context, listen: false);
+    const double iconSplash = 26.0;
 
     return Scaffold(
       appBar: AppBar(
@@ -299,17 +300,25 @@ class _QrPageState extends State<QrPage> {
         ),
         actions: [
           IconButton(
+            splashRadius: iconSplash,
+            iconSize: 30.0,
             icon: ValueListenableBuilder<bool>(
               valueListenable: instance.scanMode,
               builder: (context, state, child) {
                 if (state) {
-                  return const Icon(Icons.photo_camera_outlined);
+                  return const Text(
+                    'DTR',
+                    style: TextStyle(
+                      fontSize: 16.0,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  );
                 } else {
+                  // return const Icon(Icons.live_help_outlined);
                   return const Icon(Icons.live_help_outlined);
                 }
               },
             ),
-            iconSize: 30.0,
             onPressed: () {
               instance.scanModeState();
             },
@@ -317,6 +326,7 @@ class _QrPageState extends State<QrPage> {
           IconButton(
             icon: const Icon(Icons.info_outline),
             iconSize: 30.0,
+            splashRadius: iconSplash,
             onPressed: () {
               showAppVersionDialog(
                 title: 'Sirius ${instance.appVersion}',
@@ -325,7 +335,7 @@ class _QrPageState extends State<QrPage> {
             },
           ),
           IconButton(
-            color: Colors.white,
+            splashRadius: iconSplash,
             icon: ValueListenableBuilder(
               valueListenable: camera.torchState,
               builder: (context, state, child) {
@@ -341,7 +351,7 @@ class _QrPageState extends State<QrPage> {
             onPressed: () => camera.toggleTorch(),
           ),
           IconButton(
-            color: Colors.white,
+            splashRadius: iconSplash,
             icon: ValueListenableBuilder(
               valueListenable: camera.cameraFacingState,
               builder: (context, state, child) {
@@ -376,9 +386,11 @@ class _QrPageState extends State<QrPage> {
                   final List<Barcode> barcodes = capture.barcodes;
                   debugPrint('barcode ${barcodes.first.rawValue}');
                   debouncer.call(() async {
-                    if (!instance.hasInternet.value) {
+                    if (!instance.hasInternet.value &&
+                        !instance.scanMode.value) {
                       showMyToastError(errorMessage: 'No internet connection');
-                    } else if (!instance.isDeviceAuthorized) {
+                    } else if (!instance.isDeviceAuthorized &&
+                        !instance.scanMode.value) {
                       showMyToastError(errorMessage: 'Device not Authorized');
                     } else if (instance.scanMode.value) {
                       await showScannedQr(barcodes.first.rawValue);
@@ -538,19 +550,29 @@ class _QrPageState extends State<QrPage> {
                     onTap: () {
                       showErrorLogsDialog(list: instance.errorList);
                     },
-                    child: const Text(
-                      'Scan Mode\nTest your QR',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 50.0,
-                        shadows: [
-                          Shadow(
-                            blurRadius: 10.0,
+                    child: Container(
+                      height: MediaQuery.of(context).size.height * 0.20,
+                      width: MediaQuery.of(context).size.width * 0.85,
+                      decoration: BoxDecoration(
+                        color: Colors.amber[500],
+                        borderRadius: BorderRadius.circular(20.0),
+                      ),
+                      child: const Center(
+                        child: Text(
+                          'Scan Mode\nTest your QR',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
                             color: Colors.black,
-                            offset: Offset(1.0, 1.0),
+                            fontSize: 44.0,
+                            shadows: [
+                              Shadow(
+                                blurRadius: 5.0,
+                                color: Colors.white,
+                                offset: Offset(1.0, 1.0),
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
                     ),
                   );
