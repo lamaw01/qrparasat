@@ -212,36 +212,86 @@ class _QrPageState extends State<QrPage> {
       barrierDismissible: true,
       builder: (BuildContext context) {
         return AlertDialog(
-          actionsPadding: EdgeInsets.zero,
-          titlePadding: EdgeInsets.zero,
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (qrModel != null) ...[
-                Text(
-                  'Name: ${qrModel.name}',
-                  maxLines: 2,
-                  style: const TextStyle(fontSize: 18.0),
-                ),
-                const SizedBox(width: 5.0),
-                Text(
-                  'ID#: ${qrModel.id}',
-                  maxLines: 1,
-                  style: const TextStyle(fontSize: 18.0),
-                ),
-              ] else ...[
-                Text(
-                  'Unkown QR: ${qrData!}',
-                  maxLines: 4,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 18.0,
+          content: SizedBox(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (qrModel != null) ...[
+                  RichText(
+                    maxLines: 5,
+                    overflow: TextOverflow.ellipsis,
+                    text: TextSpan(
+                      text: 'Name: ',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                        fontSize: 22.0,
+                      ),
+                      children: [
+                        TextSpan(
+                          text: qrModel.name,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.normal,
+                            color: Colors.black,
+                            fontSize: 20.0,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ]
-            ],
+                  RichText(
+                    maxLines: 5,
+                    overflow: TextOverflow.ellipsis,
+                    text: TextSpan(
+                      text: 'ID#: ',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                        fontSize: 22.0,
+                      ),
+                      children: [
+                        TextSpan(
+                          text: qrModel.id,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.normal,
+                            color: Colors.black,
+                            fontSize: 20.0,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ] else ...[
+                  RichText(
+                    maxLines: 5,
+                    overflow: TextOverflow.ellipsis,
+                    text: TextSpan(
+                      text: 'Unkown QR: ',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                        fontSize: 22.0,
+                      ),
+                      children: [
+                        TextSpan(
+                          text: '$qrData',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.normal,
+                            color: Colors.black,
+                            fontSize: 20.0,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ]
+              ],
+            ),
           ),
           actions: <Widget>[
             TextButton(
