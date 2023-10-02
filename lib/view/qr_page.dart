@@ -212,6 +212,8 @@ class _QrPageState extends State<QrPage> {
       barrierDismissible: true,
       builder: (BuildContext context) {
         return AlertDialog(
+          insetPadding:
+              const EdgeInsets.symmetric(horizontal: 20.0, vertical: 20.0),
           content: SizedBox(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -227,7 +229,7 @@ class _QrPageState extends State<QrPage> {
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         color: Colors.black,
-                        fontSize: 22.0,
+                        fontSize: 20.0,
                       ),
                       children: [
                         TextSpan(
@@ -235,7 +237,7 @@ class _QrPageState extends State<QrPage> {
                           style: const TextStyle(
                             fontWeight: FontWeight.normal,
                             color: Colors.black,
-                            fontSize: 20.0,
+                            fontSize: 18.0,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -250,7 +252,7 @@ class _QrPageState extends State<QrPage> {
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         color: Colors.black,
-                        fontSize: 22.0,
+                        fontSize: 20.0,
                       ),
                       children: [
                         TextSpan(
@@ -258,7 +260,7 @@ class _QrPageState extends State<QrPage> {
                           style: const TextStyle(
                             fontWeight: FontWeight.normal,
                             color: Colors.black,
-                            fontSize: 20.0,
+                            fontSize: 18.0,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -266,28 +268,53 @@ class _QrPageState extends State<QrPage> {
                     ),
                   ),
                 ] else ...[
-                  RichText(
-                    maxLines: 5,
-                    overflow: TextOverflow.ellipsis,
-                    text: TextSpan(
-                      text: 'Unkown QR: ',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                        fontSize: 22.0,
-                      ),
-                      children: [
-                        TextSpan(
-                          text: '$qrData',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.normal,
-                            color: Colors.black,
-                            fontSize: 20.0,
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                  // RichText(
+                  //   maxLines: 5,
+                  //   overflow: TextOverflow.ellipsis,
+                  //   text: TextSpan(
+                  //     text: 'Unkown QR: ',
+                  //     style: const TextStyle(
+                  //       fontWeight: FontWeight.bold,
+                  //       color: Colors.black,
+                  //       fontSize: 22.0,
+                  //     ),
+                  //     children: [
+                  //       TextSpan(
+                  //         text: '$qrData',
+                  //         style: const TextStyle(
+                  //           fontWeight: FontWeight.normal,
+                  //           color: Colors.black,
+                  //           fontSize: 20.0,
+                  //           overflow: TextOverflow.ellipsis,
+                  //         ),
+                  //       ),
+                  //     ],
+                  //   ),
+                  // ),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text(
+                        'Unkown QR:',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                          fontSize: 20.0,
                         ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(height: 5.0),
+                      Text(
+                        '$qrData',
+                        maxLines: 10,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.normal,
+                          color: Colors.black,
+                          fontSize: 18.0,
+                        ),
+                      ),
+                    ],
                   ),
                 ]
               ],
@@ -601,7 +628,7 @@ class _QrPageState extends State<QrPage> {
                       showErrorLogsDialog(list: instance.errorList);
                     },
                     child: Container(
-                      height: MediaQuery.of(context).size.height * 0.20,
+                      height: MediaQuery.of(context).size.height * 0.195,
                       width: MediaQuery.of(context).size.width * 0.85,
                       decoration: BoxDecoration(
                         color: Colors.amber[500],
@@ -613,7 +640,7 @@ class _QrPageState extends State<QrPage> {
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: Colors.black,
-                            fontSize: 44.0,
+                            fontSize: 42.0,
                             shadows: [
                               Shadow(
                                 blurRadius: 5.0,

@@ -10,8 +10,8 @@ class ClockWidget extends StatelessWidget {
       stream: Stream.periodic(const Duration(seconds: 1)),
       builder: (context, snapshot) {
         return SizedBox(
-          height: MediaQuery.of(context).size.height * 0.20,
-          width: MediaQuery.of(context).size.width * 0.85,
+          height: MediaQuery.of(context).size.height * 0.195,
+          // width: MediaQuery.of(context).size.width * 0.85,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
@@ -21,7 +21,7 @@ class ClockWidget extends StatelessWidget {
                 DateFormat.jms().format(DateTime.now()),
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 56.0,
+                  fontSize: 50.0,
                   shadows: [
                     Shadow(
                       blurRadius: 10.0,
