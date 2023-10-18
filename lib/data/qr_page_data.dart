@@ -340,6 +340,7 @@ class QrPageData with ChangeNotifier {
         branchId: _branchId,
         app: 'sirius',
         version: _appVersion,
+        deviceTimestamp: _dateFormat.format(DateTime.now()),
       );
       if (result.success) {
         return LogReturn(result: LogResult.success, model: result);

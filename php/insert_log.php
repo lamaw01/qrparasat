@@ -18,13 +18,14 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && array_key_exists('employee_id', $inpu
     $branch_id = $input['branch_id'];
     $app = $input['app'];
     $version = $input['version'];
+    $device_timestamp = $input['selfie_timestamp'];
     $log_in = 'IN';
     $log_out = 'OUT';
     $already_logged = 'ALREADY IN';
     $current_time_stamp = date('Y-m-d H:i:s');
 
     // query get employee last log
-    $sql_last_log = 'SELECT tbl_employee.employee_id, tbl_employee.last_name, tbl_employee.first_name, tbl_employee.middle_name, tbl_logs.log_type, tbl_logs.time_stamp
+    $sql_last_log = 'SELECT tbl_employee.employee_id, tbl_employee.last_name, tbl_employee.first_name, tbl_employee.middle_name, tbl_logs.log_type, tbl_logs.time_stamp, tbl_logs.selfie_timestamp
     FROM tbl_employee 
     LEFT JOIN tbl_logs ON tbl_employee.employee_id = tbl_logs.employee_id
     WHERE tbl_logs.employee_id = :employee_id AND tbl_employee.active = 1
@@ -39,8 +40,8 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && array_key_exists('employee_id', $inpu
     WHERE employee_id = :employee_id AND branch_id = :branch_id';
 
     // query insert new log
-    $sql_insert_log = 'INSERT INTO tbl_logs(employee_id, log_type, address, latlng, device_id, app, version)
-    VALUES (:employee_id,:log_type,:address,:latlng,:device_id,:app,:version)';
+    $sql_insert_log = 'INSERT INTO tbl_logs(employee_id, log_type, address, latlng, device_id, app, version, selfie_timestamp)
+    VALUES (:employee_id,:log_type,:address,:latlng,:device_id,:app,:version,:selfie_timestamp)';
     try {
         //check if employee id exist
         $get_valid_id= $conn->prepare($sql_check_employee_exist);
@@ -70,9 +71,11 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && array_key_exists('employee_id', $inpu
                 // $employee_name = $result_last_log['name'];
                 $log_type = $result_last_log['log_type'];
                 $time_stamp = $result_last_log['time_stamp'];
+                // $selfie_timestamp = $result_last_log['selfie_timestamp'];
                 $time_difference = strtotime($current_time_stamp) - strtotime($time_stamp);
-                // if time difference not yet 20 secods, do not log. 14400 = 4 hours
-                if($time_difference <= 20 && $log_type == 'IN'){
+                // $time_difference = strtotime($current_time_stamp) - strtotime($selfie_timestamp);
+                // if time difference not yet 30 secods, do not log. 14400 = 4 hours
+                if($time_difference <= 30 && $log_type == 'IN'){
                     $result['log_type'] = $already_logged;
                 }else{
                     $set=$conn->prepare("SET SQL_MODE=''");
@@ -92,6 +95,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && array_key_exists('employee_id', $inpu
                     $insert_in_employee->bindParam(':device_id', $device_id, PDO::PARAM_STR);
                     $insert_in_employee->bindParam(':app', $app, PDO::PARAM_STR);
                     $insert_in_employee->bindParam(':version', $version, PDO::PARAM_STR);
+                    $insert_in_employee->bindParam(':selfie_timestamp', $device_timestamp, PDO::PARAM_STR);
                     $insert_in_employee->execute();
                 }
                 $result['name'] = $employee_name;
@@ -109,6 +113,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && array_key_exists('employee_id', $inpu
                 $insert_in_employee->bindParam(':device_id', $device_id, PDO::PARAM_STR);
                 $insert_in_employee->bindParam(':app', $app, PDO::PARAM_STR);
                 $insert_in_employee->bindParam(':version', $version, PDO::PARAM_STR);
+                $insert_in_employee->bindParam(':selfie_timestamp', $device_timestamp, PDO::PARAM_STR);
                 $insert_in_employee->execute();
                 // $result = ['data' => $conn->lastInsertId()];
                 $result['name'] = $employee_name;

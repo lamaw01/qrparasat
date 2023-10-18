@@ -18,6 +18,7 @@ class HttpService {
     required String branchId,
     required String app,
     required String version,
+    required String deviceTimestamp,
   }) async {
     var response = await http
         .post(Uri.parse('$serverUrl/insert_log.php'),
@@ -32,9 +33,10 @@ class HttpService {
               "device_id": deviceId,
               "branch_id": branchId,
               "app": app,
-              "version": version
+              "version": version,
+              "selfie_timestamp": deviceTimestamp
             }))
-        .timeout(const Duration(seconds: 15));
+        .timeout(const Duration(seconds: 10));
     debugPrint('insertLog ${response.body}');
     return logModelFromJson(response.body);
   }
