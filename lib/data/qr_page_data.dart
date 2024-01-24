@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math';
 
 import 'package:device_info_plus/device_info_plus.dart';
@@ -13,6 +14,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../model/log_model.dart';
 import '../model/qr_model.dart';
@@ -166,7 +168,7 @@ class QrPageData with ChangeNotifier {
                 TextButton(
                   child: const Text('Download new version'),
                   onPressed: () {
-                    launchUrl(Uri.parse(HttpService.appDownloadLink),
+                    launchUrl(Uri.parse(HttpService.downloadLink),
                         mode: LaunchMode.externalApplication);
                   },
                 ),
@@ -367,6 +369,37 @@ class QrPageData with ChangeNotifier {
     } finally {
       changeStateLoading(false);
     }
+  }
+
+  Future<String> get _localPath async {
+    final directory = await getApplicationDocumentsDirectory();
+
+    return directory.path;
+  }
+
+  // Future<File> get _localFile async {
+  //   final path = await _localPath;
+  //   final file = File('$path/SNOVCORA.exf');
+  //   if (await file.exists()) {
+  //     file.create();
+  //   }
+  //   return File('$path/SNOVCORA.exf');
+  // }
+
+  Future<File> writeData(String data) async {
+    final path = await _localPath;
+    final file = File('$path/SNOVCORA.exf');
+    // Write the file
+    // return file.writeAsString(data);
+    file.writeAsString('$data            ', mode: FileMode.append);
+    return file;
+  }
+
+  Future<String> readData() async {
+    final path = await _localPath;
+    final file = File('$path/SNOVCORA.exf');
+    // Read the file
+    return file.readAsString();
   }
 }
 

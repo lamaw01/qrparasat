@@ -48,6 +48,7 @@ class MyApp extends StatelessWidget {
       title: 'Sirius',
       theme: ThemeData(
         primarySwatch: AppColor.kMainColor,
+        useMaterial3: false,
       ),
       home: const LoadingPage(),
       debugShowCheckedModeBanner: false,

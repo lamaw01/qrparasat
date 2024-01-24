@@ -23,6 +23,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && array_key_exists('employee_id', $inpu
     $log_out = 'OUT';
     $already_logged = 'ALREADY IN';
     $current_time_stamp = date('Y-m-d H:i:s');
+    $day = $input['day'];
 
     // query get employee last log
     $sql_last_log = 'SELECT tbl_employee.employee_id, tbl_employee.last_name, tbl_employee.first_name, tbl_employee.middle_name, tbl_logs.log_type, tbl_logs.time_stamp, tbl_logs.selfie_timestamp
@@ -40,8 +41,14 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && array_key_exists('employee_id', $inpu
     WHERE employee_id = :employee_id AND branch_id = :branch_id';
 
     // query insert new log
-    $sql_insert_log = 'INSERT INTO tbl_logs(employee_id, log_type, address, latlng, device_id, app, version, selfie_timestamp)
-    VALUES (:employee_id,:log_type,:address,:latlng,:device_id,:app,:version,:selfie_timestamp)';
+    $sql_insert_log = 'INSERT INTO tbl_logs(employee_id, log_type, address, latlng, device_id, app, version, selfie_timestamp, current_sched_id)
+    VALUES (:employee_id,:log_type,:address,:latlng,:device_id,:app,:version,:selfie_timestamp,:current_sched_id)';
+
+    // query get employee sched id this day
+    $sql_get_employee_sched = 'SELECT '.$day.' FROM tbl_week_schedule 
+    JOIN tbl_employee ON tbl_employee.week_sched_id = tbl_week_schedule.week_sched_id 
+    WHERE tbl_employee.employee_id = :employee_id AND tbl_employee.active = 1';
+
     try {
         //check if employee id exist
         $get_valid_id= $conn->prepare($sql_check_employee_exist);
@@ -66,6 +73,14 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && array_key_exists('employee_id', $inpu
             $get_employee_last_log->bindParam(':employee_id', $employee_id, PDO::PARAM_STR);
             $get_employee_last_log->execute();
             $result_last_log = $get_employee_last_log->fetch(PDO::FETCH_ASSOC);
+            
+            // get today sched id
+            $get_employee_sched= $conn->prepare($sql_get_employee_sched);
+            $get_employee_sched->bindParam(':employee_id', $employee_id, PDO::PARAM_STR);
+            $get_employee_sched->execute();
+            $result_get_employee_sched = $get_employee_sched->fetch(PDO::FETCH_ASSOC);
+            $sched_id = $result_get_employee_sched[$day];
+
             // insert new log
             if($result_last_log){
                 // $employee_name = $result_last_log['name'];
@@ -74,8 +89,8 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && array_key_exists('employee_id', $inpu
                 // $selfie_timestamp = $result_last_log['selfie_timestamp'];
                 $time_difference = strtotime($current_time_stamp) - strtotime($time_stamp);
                 // $time_difference = strtotime($current_time_stamp) - strtotime($selfie_timestamp);
-                // if time difference not yet 30 secods, do not log. 14400 = 4 hours
-                if($time_difference <= 30 && $log_type == 'IN'){
+                // if time difference not yet 15 seconds, do not log. 14400 = 4 hours
+                if($time_difference <= 15 && $log_type == 'IN'){
                     $result['log_type'] = $already_logged;
                 }else{
                     $set=$conn->prepare("SET SQL_MODE=''");
@@ -96,8 +111,29 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && array_key_exists('employee_id', $inpu
                     $insert_in_employee->bindParam(':app', $app, PDO::PARAM_STR);
                     $insert_in_employee->bindParam(':version', $version, PDO::PARAM_STR);
                     $insert_in_employee->bindParam(':selfie_timestamp', $device_timestamp, PDO::PARAM_STR);
+                    $insert_in_employee->bindParam(':version', $version, PDO::PARAM_STR);
+                    $insert_in_employee->bindParam(':current_sched_id', $sched_id, PDO::PARAM_STR);
                     $insert_in_employee->execute();
                 }
+                // $set=$conn->prepare("SET SQL_MODE=''");
+                // $set->execute();
+                // $insert_in_employee = $conn->prepare($sql_insert_log);
+                // $insert_in_employee->bindParam(':employee_id', $employee_id, PDO::PARAM_STR);
+                // // in or out
+                // if($log_type == 'OUT'){
+                //     $insert_in_employee->bindParam(':log_type', $log_in, PDO::PARAM_STR);
+                //     $result['log_type'] = $log_in;
+                // }else{
+                //     $insert_in_employee->bindParam(':log_type', $log_out, PDO::PARAM_STR);
+                //     $result['log_type'] = $log_out;
+                // }
+                // $insert_in_employee->bindParam(':address', $address, PDO::PARAM_STR);
+                // $insert_in_employee->bindParam(':latlng', $latlng, PDO::PARAM_STR);
+                // $insert_in_employee->bindParam(':device_id', $device_id, PDO::PARAM_STR);
+                // $insert_in_employee->bindParam(':app', $app, PDO::PARAM_STR);
+                // $insert_in_employee->bindParam(':version', $version, PDO::PARAM_STR);
+                // $insert_in_employee->bindParam(':selfie_timestamp', $device_timestamp, PDO::PARAM_STR);
+                // $insert_in_employee->execute();
                 $result['name'] = $employee_name;
                 echo json_encode(array('success'=>true,'message'=>'Ok','data'=>$result));
             }
@@ -114,6 +150,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && array_key_exists('employee_id', $inpu
                 $insert_in_employee->bindParam(':app', $app, PDO::PARAM_STR);
                 $insert_in_employee->bindParam(':version', $version, PDO::PARAM_STR);
                 $insert_in_employee->bindParam(':selfie_timestamp', $device_timestamp, PDO::PARAM_STR);
+                $insert_in_employee->bindParam(':current_sched_id', $sched_id, PDO::PARAM_STR);
                 $insert_in_employee->execute();
                 // $result = ['data' => $conn->lastInsertId()];
                 $result['name'] = $employee_name;

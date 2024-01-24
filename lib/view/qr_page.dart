@@ -396,19 +396,25 @@ class _QrPageState extends State<QrPage> {
                 }
               },
             ),
-            onPressed: () {
+            onPressed: () async {
               instance.scanModeState();
+              // final result = await instance.readData();
+
+              // log(result);
             },
           ),
           IconButton(
             icon: const Icon(Icons.info_outline),
             iconSize: 30.0,
             splashRadius: iconSplash,
-            onPressed: () {
+            onPressed: () async {
               showAppVersionDialog(
                 title: 'Sirius ${instance.appVersion}',
                 id: 'Device ID: ${instance.deviceId}',
               );
+              // final result = await instance.writeData('0118042023111618:01:55');
+
+              // log(result.path.toString());
             },
           ),
           IconButton(
